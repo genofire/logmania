@@ -1,19 +1,19 @@
-package entry
+package log
 
 import "fmt"
 
 type Entry struct {
-	Level  logLevel               `json:"level"`
+	Level  LogLevel               `json:"level"`
 	Fields map[string]interface{} `json:"fields"`
 	Text   string                 `json:"text"`
 }
 
-func (e *Entry) Log(level logLevel, v ...interface{}) {
+func (e *Entry) Log(level LogLevel, v ...interface{}) {
 	e.Text = fmt.Sprint(v...)
 	e.Level = level
 	save(e)
 }
-func (e *Entry) Logf(level logLevel, format string, v ...interface{}) {
+func (e *Entry) Logf(level LogLevel, format string, v ...interface{}) {
 	e.Text = fmt.Sprintf(format, v...)
 	e.Level = level
 	save(e)
@@ -35,5 +35,9 @@ func (e *Entry) AddFields(fields map[string]interface{}) *Entry {
 }
 
 func (e *Entry) FieldString() string {
-	return FieldOutput(e.Fields)
+	text := ""
+	for key, value := range e.Fields {
+		text = fmt.Sprintf("%s %s=%v", text, key, value)
+	}
+	return text[1:]
 }

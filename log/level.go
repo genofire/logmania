@@ -1,16 +1,16 @@
-package entry
+package log
 
-type logLevel int32
+type LogLevel int32
 
 const (
-	DebugLevel = -1
-	InfoLevel  = 0
-	WarnLevel  = 1
-	ErrorLevel = 2
-	PanicLevel = 3
+	DebugLevel = LogLevel(-1)
+	InfoLevel  = LogLevel(0)
+	WarnLevel  = LogLevel(1)
+	ErrorLevel = LogLevel(2)
+	PanicLevel = LogLevel(3)
 )
 
-func (l logLevel) String() string {
+func (l LogLevel) String() string {
 	switch l {
 	case DebugLevel:
 		return "Debug"
