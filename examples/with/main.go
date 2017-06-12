@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	logClient.Init("ws://localhost:8081/blub", "example")
+	logClient.Init("ws://localhost:8081", "example", log.DebugLevel)
 	log.Info("startup")
 	log.New().AddField("answer", 42).AddFields(map[string]interface{}{"answer": 3, "foo": "bar"}).Warn("Some spezial")
 	log.Debug("Never shown up")
