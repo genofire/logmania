@@ -1,5 +1,5 @@
-// reciever of log entry over network (websocket)
-package recieve
+// receiver of log entry over network (websocket)
+package receive
 
 import (
 	"encoding/json"
@@ -38,21 +38,21 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			var maybeToken string
 			msgType, msg, err := c.ReadMessage()
 			if err != nil {
-				logEntry.Error("recieving token", err)
+				logEntry.Error("receiving token", err)
 				break
 			}
 			if msgType != websocket.TextMessage {
-				logEntry.Warn("recieve no token")
+				logEntry.Warn("receive no token")
 				break
 			}
 			maybeToken = string(msg)
 			logEntry.AddField("token", maybeToken)
 			if !database.IsTokenValid(maybeToken) {
-				logEntry.Warn("recieve wrong token")
+				logEntry.Warn("receive wrong token")
 				break
 			} else {
 				token = maybeToken
-				logEntry.Info("recieve valid token")
+				logEntry.Info("receive valid token")
 			}
 			continue
 		}
@@ -64,7 +64,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		if err != nil {
-			logEntry.Error("recieving log entry:", err)
+			logEntry.Error("receiving log entry:", err)
 			break
 		}
 		err = json.Unmarshal(msg, &entry)

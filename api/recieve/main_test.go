@@ -1,1 +1,1 @@
-package recieve
+package receive

@@ -15,7 +15,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/genofire/logmania/api/recieve"
+	"github.com/genofire/logmania/api/receive"
 	"github.com/genofire/logmania/database"
 	"github.com/genofire/logmania/lib"
 	"github.com/genofire/logmania/log"
@@ -53,7 +53,7 @@ func main() {
 
 	api = &lib.HTTPServer{
 		Addr:    config.API.Bind,
-		Handler: recieve.NewHandler(),
+		Handler: receive.NewHandler(),
 	}
 	api.Start()
 

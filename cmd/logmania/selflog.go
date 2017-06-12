@@ -8,8 +8,8 @@ import (
 type SelfLogger struct {
 	log.Logger
 	AboveLevel log.LogLevel
-	lastMsg string
-	lastTime int
+	lastMsg    string
+	lastTime   int
 }
 
 func NewSelfLogger() *SelfLogger {
@@ -26,15 +26,14 @@ func (l *SelfLogger) Hook(e *log.Entry) {
 	if l.lastTime > 15 {
 		panic("selflogger same log to oftern")
 	}
-	if l.lastMsg == e.Text{
+	if l.lastMsg == e.Text {
 		l.lastTime += 1
 	} else {
 		l.lastMsg = e.Text
 		l.lastTime = 1
 	}
-	database.InsertEntry("",e)
+	database.InsertEntry("", e)
 }
-
 
 func (l *SelfLogger) Close() {
 }
