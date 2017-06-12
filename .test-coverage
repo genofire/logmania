@@ -4,6 +4,10 @@
 CI=$1
 echo "run for $CI"
 
+if [ "$CI" == "circle-ci" ]; then
+  cd ${GOPATH}/src/github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}
+fi
+
 echo "mode: count" > profile.cov
 FAIL=0
 
