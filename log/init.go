@@ -15,6 +15,7 @@ func getIP(r *http.Request) string {
 	return ip
 }
 
+// init log entry with extra fields of interesting http request context
 func HTTP(r *http.Request) *Entry {
 	return New().AddFields(map[string]interface{}{
 		"remote": getIP(r),
@@ -23,6 +24,7 @@ func HTTP(r *http.Request) *Entry {
 	})
 }
 
+// init log entry with extra fields of interesting websocket request context
 func WebsocketX(ws *websocket.Conn) *Entry {
 	r := ws.Request()
 	return New().AddFields(map[string]interface{}{
@@ -31,6 +33,8 @@ func WebsocketX(ws *websocket.Conn) *Entry {
 		"url":       r.URL.RequestURI(),
 	})
 }
+
+// init log entry with extra fields of interesting websocket request context
 func WebsocketGozilla(ws *wsGozilla.Conn) *Entry {
 	return New().AddFields(map[string]interface{}{
 		"remote":    ws.RemoteAddr().String(),

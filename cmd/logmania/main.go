@@ -1,3 +1,12 @@
+// logmania Server
+//
+// reload config with SIGUSR1
+//
+//   Usage of logmania:
+//    -config string
+//      	config file (default "logmania.conf")
+//    -debug
+//      	enable debuging
 package main
 
 import (
@@ -78,11 +87,7 @@ func reload() {
 		log.Errorf("reload: could not load '%s' for new configuration. Skip reload.", configPath)
 		return
 	}
-	if config.API.Bind != api.Addr {
-		api.ErrorNoPanic = true
-		api.Close()
-		api.Addr = config.API.Bind
-		api.Start()
+	if api.Rebind(config.API.Bind) {
 		log.Info("reload: new api bind")
 	}
 	if database.ReplaceConnect(config.Database.Type, config.Database.Connect) {

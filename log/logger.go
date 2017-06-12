@@ -1,5 +1,6 @@
 package log
 
+// interface of a logger
 type Logger interface {
 	Hook(*Entry)
 	Close()
@@ -7,6 +8,7 @@ type Logger interface {
 
 var loggers = make([]Logger, 0)
 
+// bind logger to handle saving/output of a Log entry
 func AddLogger(logger Logger) {
 	loggers = append(loggers, logger)
 }

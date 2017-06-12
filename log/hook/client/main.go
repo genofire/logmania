@@ -1,3 +1,4 @@
+// logger to bind at github.com/genofire/logmania/log.AddLogger to send log entries to logmania server
 package client
 
 import (
@@ -8,6 +9,7 @@ import (
 	"github.com/genofire/logmania/log"
 )
 
+// client logger
 type Logger struct {
 	log.Logger
 	AboveLevel log.LogLevel
@@ -15,8 +17,10 @@ type Logger struct {
 	closed     bool
 }
 
+// CurrentLogger (for override settings e.g. AboveLevel)
 var CurrentLogger *Logger
 
+// create a new logmania client logger
 func NewLogger(url, token string, AboveLevel log.LogLevel) *Logger {
 	c, _, err := websocket.DefaultDialer.Dial(fmt.Sprint(url, "/logger"), nil)
 	if err != nil {
@@ -34,6 +38,7 @@ func NewLogger(url, token string, AboveLevel log.LogLevel) *Logger {
 	}
 }
 
+// handle a log entry (send to logmania server)
 func (l *Logger) Hook(e *log.Entry) {
 	if l.closed {
 		return
@@ -47,6 +52,8 @@ func (l *Logger) Hook(e *log.Entry) {
 		l.Close()
 	}
 }
+
+// Listen if logmania server want to close the connection
 func (l *Logger) Listen() {
 	for {
 		msgType, _, err := l.conn.ReadMessage()
@@ -60,11 +67,14 @@ func (l *Logger) Listen() {
 		}
 	}
 }
+
+// close connection to logger
 func (l *Logger) Close() {
 	l.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 	l.closed = true
 }
 
+// init logmania's client logger and bind
 func Init(url, token string, AboveLevel log.LogLevel) *Logger {
 	CurrentLogger = NewLogger(url, token, AboveLevel)
 	go CurrentLogger.Listen()

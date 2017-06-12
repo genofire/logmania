@@ -1,3 +1,5 @@
+// logger to print log entry (with color)
+// this logger would be bind by importing
 package output
 
 import (
@@ -16,6 +18,7 @@ var (
 	AboveLevel = log.InfoLevel
 )
 
+// logger for output
 type Logger struct {
 	log.Logger
 	TimeFormat string
@@ -23,8 +26,10 @@ type Logger struct {
 	AboveLevel log.LogLevel
 }
 
+// CurrentLogger (for override settings e.g. AboveLevel,ShowTime or TimeFormat)
 var CurrentLogger *Logger
 
+// create a new output logger
 func NewLogger() *Logger {
 	return &Logger{
 		TimeFormat: "2006-01-02 15:04:05",
@@ -33,6 +38,7 @@ func NewLogger() *Logger {
 	}
 }
 
+// handle a log entry (print it on the terminal with color)
 func (l *Logger) Hook(e *log.Entry) {
 	if e.Level < AboveLevel {
 		return
@@ -76,6 +82,7 @@ func (l *Logger) Hook(e *log.Entry) {
 	}
 }
 
+// do nothing - terminal did not need something to close
 func (l *Logger) Close() {
 }
 

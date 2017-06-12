@@ -1,3 +1,4 @@
+// reciever of log entry over network (websocket)
 package recieve
 
 import (
@@ -9,16 +10,20 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// http.Handler for init network
 type Handler struct {
+	http.Handler
 	upgrader websocket.Upgrader
 }
 
+// init new Handler
 func NewHandler() *Handler {
 	return &Handler{
 		upgrader: websocket.Upgrader{},
 	}
 }
 
+// server response of handler
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logEntry := log.HTTP(r)
 	c, err := h.upgrader.Upgrade(w, r, nil)

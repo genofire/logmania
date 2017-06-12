@@ -7,6 +7,8 @@ import (
 	"github.com/genofire/logmania/log"
 )
 
+// Struct of the configuration
+// e.g. under github.com/genofire/logmania/logmania_example.conf
 type Config struct {
 	API struct {
 		Bind        string `toml:"bind"`
@@ -35,6 +37,7 @@ type Config struct {
 	} `toml:"webserver"`
 }
 
+// read configuration from a file (use toml as file-format)
 func ReadConfig(path string) (*Config, error) {
 	log.Debugf("load of configfile: %s", path)
 	var config Config
