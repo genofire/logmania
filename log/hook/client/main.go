@@ -14,8 +14,9 @@ type Logger struct {
 	log.Logger
 	AboveLevel log.LogLevel
 	conn       *websocket.Conn
-	closed     bool
 }
+
+const LOGGER_NAME = "client"
 
 // CurrentLogger (for override settings e.g. AboveLevel)
 var CurrentLogger *Logger
@@ -40,9 +41,6 @@ func NewLogger(url, token string, AboveLevel log.LogLevel) *Logger {
 
 // handle a log entry (send to logmania server)
 func (l *Logger) Hook(e *log.Entry) {
-	if l.closed {
-		return
-	}
 	if e.Level < l.AboveLevel {
 		return
 	}
@@ -58,8 +56,8 @@ func (l *Logger) Listen() {
 	for {
 		msgType, _, err := l.conn.ReadMessage()
 		if msgType == -1 {
-			l.closed = true
 			l.conn.Close()
+			l.Close()
 			return
 		}
 		if err != nil {
@@ -71,13 +69,13 @@ func (l *Logger) Listen() {
 // close connection to logger
 func (l *Logger) Close() {
 	l.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-	l.closed = true
+	log.RemoveLogger(LOGGER_NAME)
 }
 
 // init logmania's client logger and bind
 func Init(url, token string, AboveLevel log.LogLevel) *Logger {
 	CurrentLogger = NewLogger(url, token, AboveLevel)
 	go CurrentLogger.Listen()
-	log.AddLogger(CurrentLogger)
+	log.AddLogger(LOGGER_NAME, CurrentLogger)
 	return CurrentLogger
 }

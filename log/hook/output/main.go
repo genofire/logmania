@@ -88,5 +88,5 @@ func (l *Logger) Close() {
 
 func init() {
 	CurrentLogger = NewLogger()
-	log.AddLogger(CurrentLogger)
+	log.AddLogger("output", CurrentLogger)
 }

@@ -6,11 +6,14 @@ type Logger interface {
 	Close()
 }
 
-var loggers = make([]Logger, 0)
+var loggers = make(map[string]Logger)
 
 // bind logger to handle saving/output of a Log entry
-func AddLogger(logger Logger) {
-	loggers = append(loggers, logger)
+func AddLogger(name string, logger Logger) {
+	loggers[name] = logger
+}
+func RemoveLogger(name string) {
+	delete(loggers, name)
 }
 
 func save(e *Entry) {

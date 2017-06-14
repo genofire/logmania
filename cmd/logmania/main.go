@@ -49,7 +49,7 @@ func main() {
 	}
 
 	database.Connect(config.Database.Type, config.Database.Connect)
-	log.AddLogger(logger)
+	log.AddLogger("selflogger", logger)
 
 	api = &lib.HTTPServer{
 		Addr:    config.API.Bind,

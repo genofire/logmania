@@ -27,6 +27,9 @@ func HTTP(r *http.Request) *Entry {
 // init log entry with extra fields of interesting websocket request context
 func WebsocketX(ws *websocket.Conn) *Entry {
 	r := ws.Request()
+	if r == nil {
+		return New().AddField("websocket", true)
+	}
 	return New().AddFields(map[string]interface{}{
 		"remote":    getIP(r),
 		"websocket": true,
