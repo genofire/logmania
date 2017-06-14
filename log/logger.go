@@ -13,6 +13,7 @@ func AddLogger(name string, logger Logger) {
 	loggers[name] = logger
 }
 func RemoveLogger(name string) {
+	loggers[name].Close()
 	delete(loggers, name)
 }
 

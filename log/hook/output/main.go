@@ -4,6 +4,7 @@ package output
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"time"
 
@@ -13,9 +14,11 @@ import (
 )
 
 var (
-	TimeFormat = "2006-01-02 15:04:05"
-	ShowTime   = true
-	AboveLevel = log.InfoLevel
+	TimeFormat           = "2006-01-02 15:04:05"
+	ShowTime             = true
+	AboveLevel           = log.InfoLevel
+	errOutput  io.Writer = os.Stderr
+	output     io.Writer = os.Stdout
 )
 
 // logger for output
@@ -76,9 +79,9 @@ func (l *Logger) Hook(e *log.Entry) {
 	text := fmt.Sprintf(format, v...)
 
 	if e.Level > log.WarnLevel {
-		os.Stderr.WriteString(text)
+		errOutput.Write([]byte(text))
 	} else {
-		os.Stdout.WriteString(text)
+		output.Write([]byte(text))
 	}
 }
 
