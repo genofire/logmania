@@ -14,19 +14,7 @@ type Config struct {
 		Bind        string `toml:"bind"`
 		Interactive bool   `toml:"interactive"`
 	} `toml:"api"`
-	Notify struct {
-		XMPP struct {
-			Host          string `toml:"host"`
-			Username      string `toml:"username"`
-			Password      string `toml:"password"`
-			Debug         bool   `toml:"debug"`
-			NoTLS         bool   `toml:"no_tls"`
-			Session       bool   `toml:"session"`
-			Status        string `toml:"status"`
-			StatusMessage string `toml:"status_message"`
-			StartupNotify string `toml:"startup_notify"`
-		} `toml:"xmpp"`
-	} `toml:"notify"`
+	Notify   NotifyConfig `toml:"notify"`
 	Database struct {
 		Type    string `toml:"type"`
 		Connect string `toml:"connect"`
@@ -35,6 +23,20 @@ type Config struct {
 		Enable bool   `toml:"enable"`
 		Bind   string `toml:"bind"`
 	} `toml:"webserver"`
+}
+
+type NotifyConfig struct {
+	XMPP struct {
+		Host          string `toml:"host"`
+		Username      string `toml:"username"`
+		Password      string `toml:"password"`
+		Debug         bool   `toml:"debug"`
+		NoTLS         bool   `toml:"no_tls"`
+		Session       bool   `toml:"session"`
+		Status        string `toml:"status"`
+		StatusMessage string `toml:"status_message"`
+		StartupNotify string `toml:"startup_notify"`
+	} `toml:"xmpp"`
 }
 
 // read configuration from a file (use toml as file-format)

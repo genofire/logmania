@@ -5,21 +5,25 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/gorilla/websocket"
+
 	"github.com/genofire/logmania/database"
 	"github.com/genofire/logmania/log"
-	"github.com/gorilla/websocket"
+	"github.com/genofire/logmania/notify"
 )
 
 // http.Handler for init network
 type Handler struct {
 	http.Handler
 	upgrader websocket.Upgrader
+	Notify   notify.Notifier
 }
 
 // init new Handler
-func NewHandler() *Handler {
+func NewHandler(notifyHandler notify.Notifier) *Handler {
 	return &Handler{
 		upgrader: websocket.Upgrader{},
+		Notify:   notifyHandler,
 	}
 }
 
@@ -72,6 +76,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			logEntry.Error("umarshal log entry:", err)
 			break
 		}
-		database.InsertEntry(token, &entry)
+		dbEntry := database.InsertEntry(token, &entry)
+		if dbEntry != nil && h.Notify != nil {
+			h.Notify.Send(dbEntry)
+		}
 	}
 }

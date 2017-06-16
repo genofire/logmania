@@ -12,3 +12,9 @@ type User struct {
 	NotifyAfterLoglevel log.LogLevel
 	Permissions         []Application `gorm:"many2many:user_permissions;"`
 }
+
+func UserByApplication(id int) []*User {
+	var users []*User
+	db.Model(&Application{ID: id}).Related(&users)
+	return users
+}

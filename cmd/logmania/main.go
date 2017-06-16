@@ -20,6 +20,8 @@ import (
 	"github.com/genofire/logmania/lib"
 	"github.com/genofire/logmania/log"
 	logOutput "github.com/genofire/logmania/log/hook/output"
+	"github.com/genofire/logmania/notify"
+	"github.com/genofire/logmania/notify/all"
 )
 
 var (
@@ -27,6 +29,7 @@ var (
 	config     *lib.Config
 	api        *lib.HTTPServer
 	apiNoPanic *bool
+	notifier   notify.Notifier
 	debug      bool
 )
 
@@ -51,9 +54,11 @@ func main() {
 	database.Connect(config.Database.Type, config.Database.Connect)
 	log.AddLogger("selflogger", logger)
 
+	notifier = all.NotifyInit(&config.Notify)
+
 	api = &lib.HTTPServer{
 		Addr:    config.API.Bind,
-		Handler: receive.NewHandler(),
+		Handler: receive.NewHandler(notifier),
 	}
 	api.Start()
 
@@ -76,6 +81,7 @@ func main() {
 }
 
 func quit() {
+	notifier.Close()
 	log.Info("quit of logmania")
 	os.Exit(0)
 }

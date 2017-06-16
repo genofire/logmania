@@ -10,7 +10,9 @@ var loggers = make(map[string]Logger)
 
 // bind logger to handle saving/output of a Log entry
 func AddLogger(name string, logger Logger) {
-	loggers[name] = logger
+	if logger != nil {
+		loggers[name] = logger
+	}
 }
 func RemoveLogger(name string) {
 	loggers[name].Close()

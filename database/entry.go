@@ -28,7 +28,7 @@ func transformToDB(dbEntry *log.Entry) *Entry {
 	}
 }
 
-func InsertEntry(token string, entryLog *log.Entry) {
+func InsertEntry(token string, entryLog *log.Entry) *Entry {
 	app := Application{}
 	db.Where("token = ?", token).First(&app)
 	entry := transformToDB(entryLog)
@@ -38,4 +38,5 @@ func InsertEntry(token string, entryLog *log.Entry) {
 	if result.Error != nil {
 		log.Error("saving log entry to database", result.Error)
 	}
+	return entry
 }
