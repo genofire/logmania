@@ -46,8 +46,8 @@ func (l *Logger) Hook(e *log.Entry) {
 	}
 	err := l.conn.WriteJSON(e)
 	if err != nil {
-		log.Error("[logmania] could not send log entry:", err)
 		l.Close()
+		log.Error("[logmania] could not send log entry:", err)
 	}
 }
 
@@ -61,6 +61,7 @@ func (l *Logger) Listen() {
 			return
 		}
 		if err != nil {
+			l.Close()
 			log.Warn("[logmania] close listener:", err)
 		}
 	}
