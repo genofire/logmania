@@ -17,6 +17,3 @@ type NotifyInit func(*lib.NotifyConfig) Notifier
 func AddNotifier(n NotifyInit) {
 	NotifyRegister = append(NotifyRegister, n)
 }
-
-func Start(config *lib.NotifyConfig) {
-}

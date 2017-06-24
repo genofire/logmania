@@ -32,7 +32,10 @@ func (l *SelfLogger) Hook(e *log.Entry) {
 		l.lastMsg = e.Text
 		l.lastTime = 1
 	}
-	database.InsertEntry("", e)
+	dbEntry := database.InsertEntry("", e)
+	if dbEntry != nil && notifier != nil {
+		notifier.Send(dbEntry)
+	}
 }
 
 func (l *SelfLogger) Close() {

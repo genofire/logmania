@@ -34,8 +34,8 @@ func NotifyInit(config *lib.NotifyConfig) notify.Notifier {
 func (n *Notifier) Send(e *database.Entry) {
 	users := database.UserByApplication(e.ApplicationID)
 	for _, user := range users {
-		if user.NotifyXMPP && user.NotifyAfterLoglevel <= log.LogLevel(e.Level) {
-			n.client.SendHtml(xmpp.Chat{Remote: user.XMPP, Type: "chat", Text: FormatEntry(e)})
+		if user.NotifyXMPP && log.LogLevel(e.Level) >= user.NotifyAfterLoglevel {
+			n.client.SendHtml(xmpp.Chat{Remote: user.XMPP, Type: "chat", Text: formatEntry(e)})
 		}
 	}
 }
