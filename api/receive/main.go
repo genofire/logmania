@@ -10,6 +10,8 @@ import (
 	"github.com/genofire/logmania/database"
 	"github.com/genofire/logmania/log"
 	"github.com/genofire/logmania/notify"
+
+	logOutput "github.com/genofire/logmania/log/hook/output"
 )
 
 // http.Handler for init network
@@ -79,6 +81,12 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		dbEntry := database.InsertEntry(token, &entry)
 		if dbEntry != nil && h.Notify != nil {
 			h.Notify.Send(dbEntry)
+		} else {
+			l := logOutput.NewLogger()
+			e := log.New()
+			e.Text = "No notifier found"
+			e.Level = log.WarnLevel
+			l.Hook(e)
 		}
 	}
 }

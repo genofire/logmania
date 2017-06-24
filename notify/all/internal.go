@@ -28,7 +28,7 @@ func NotifyInit(config *lib.NotifyConfig) notify.Notifier {
 
 func (n *Notifier) Send(entry *database.Entry) {
 	for _, item := range n.list {
-		item.Send(entry)
+		go item.Send(entry)
 	}
 }
 

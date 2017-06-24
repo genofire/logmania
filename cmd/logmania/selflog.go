@@ -3,6 +3,8 @@ package main
 import (
 	"github.com/genofire/logmania/database"
 	"github.com/genofire/logmania/log"
+
+	logOutput "github.com/genofire/logmania/log/hook/output"
 )
 
 type SelfLogger struct {
@@ -35,6 +37,12 @@ func (l *SelfLogger) Hook(e *log.Entry) {
 	dbEntry := database.InsertEntry("", e)
 	if dbEntry != nil && notifier != nil {
 		notifier.Send(dbEntry)
+	} else {
+		l := logOutput.NewLogger()
+		e := log.New()
+		e.Text = "No notifier found"
+		e.Level = log.WarnLevel
+		l.Hook(e)
 	}
 }
 
