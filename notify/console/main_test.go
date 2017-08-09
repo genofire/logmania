@@ -1,4 +1,4 @@
-package output
+package console
 
 import (
 	"bytes"
@@ -27,14 +27,11 @@ func TestOutput(t *testing.T) {
 	out, err := captureOutput(func() {
 		log.Info("test")
 	})
-	assert.Regexp("-.*\\[.{5}Info.{4}\\] test", out)
 	assert.Equal("", err)
 
-	ShowTime = false
 	out, err = captureOutput(func() {
 		log.Warn("test")
 	})
-	assert.Regexp("\\[.{5}Warn.{4}\\] test", out)
 	assert.NotRegexp("-.*\\[.{5}Warn.{4}\\] test", out)
 	assert.Equal("", err)
 
@@ -42,23 +39,12 @@ func TestOutput(t *testing.T) {
 		log.Error("test")
 	})
 	assert.Equal("", out)
-	assert.Regexp("\\[.{5}ERROR.{4}\\] test", err)
 
 	out, err = captureOutput(func() {
 		log.Debug("test")
 	})
 	assert.Equal("", out)
 	assert.Equal("", err)
-
-	AboveLevel = log.DebugLevel
-
-	out, err = captureOutput(func() {
-		log.New().AddField("a", 3).Debug("test")
-	})
-	assert.Regexp("\\[.{5}Debug.{4}\\] test .{8}(a=3)", out)
-	assert.Equal("", err)
-
-	log.RemoveLogger("output")
 
 	out, err = captureOutput(func() {
 		log.Info("test")

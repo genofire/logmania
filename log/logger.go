@@ -1,32 +1,9 @@
 package log
 
-// interface of a logger
-type Logger interface {
-	Hook(*Entry)
-	Close()
-}
+type loggerFunc func(*Entry)
 
-var loggers = make(map[string]Logger)
+var Save loggerFunc
 
-// bind logger to handle saving/output of a Log entry
-func AddLogger(name string, logger Logger) {
-	if logger != nil {
-		loggers[name] = logger
-	}
-}
-func RemoveLogger(name string) {
-	loggers[name].Close()
-	delete(loggers, name)
-}
-
-func save(e *Entry) {
-	for _, logger := range loggers {
-		logger.Hook(e)
-	}
-	if e.Level == PanicLevel {
-		for _, logger := range loggers {
-			logger.Close()
-		}
-		panic("panic see last log in logmania")
-	}
+func init() {
+	Save = func(*Entry) {}
 }

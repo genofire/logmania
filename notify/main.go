@@ -1,14 +1,14 @@
 package notify
 
 import (
-	"github.com/genofire/logmania/database"
 	"github.com/genofire/logmania/lib"
+	"github.com/genofire/logmania/log"
 )
 
 var NotifyRegister []NotifyInit
 
 type Notifier interface {
-	Send(entry *database.Entry)
+	Send(entry *log.Entry)
 	Close()
 }
 

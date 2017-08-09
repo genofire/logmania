@@ -1,17 +1,18 @@
 package all
 
 import (
-	"github.com/genofire/logmania/database"
 	"github.com/genofire/logmania/lib"
+	"github.com/genofire/logmania/log"
 	"github.com/genofire/logmania/notify"
 )
 
 type Notifier struct {
 	notify.Notifier
-	list []notify.Notifier
+	list          []notify.Notifier
+	channelNotify chan *log.Entry
 }
 
-func NotifyInit(config *lib.NotifyConfig) notify.Notifier {
+func Init(config *lib.NotifyConfig) notify.Notifier {
 	var list []notify.Notifier
 	for _, init := range notify.NotifyRegister {
 		notify := init(config)
@@ -21,15 +22,25 @@ func NotifyInit(config *lib.NotifyConfig) notify.Notifier {
 		}
 		list = append(list, notify)
 	}
-	return &Notifier{
-		list: list,
+
+	n := &Notifier{
+		list:          list,
+		channelNotify: make(chan *log.Entry),
+	}
+	go n.sender()
+	return n
+}
+
+func (n *Notifier) sender() {
+	for c := range n.channelNotify {
+		for _, item := range n.list {
+			item.Send(c)
+		}
 	}
 }
 
-func (n *Notifier) Send(entry *database.Entry) {
-	for _, item := range n.list {
-		go item.Send(entry)
-	}
+func (n *Notifier) Send(e *log.Entry) {
+	n.channelNotify <- e
 }
 
 func (n *Notifier) Close() {

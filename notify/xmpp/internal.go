@@ -1,7 +1,7 @@
 package xmpp
 
-import "github.com/genofire/logmania/database"
+import "github.com/genofire/logmania/log"
 
-func formatEntry(e *database.Entry) string {
+func formatEntry(e *log.Entry) string {
 	return e.Text
 }

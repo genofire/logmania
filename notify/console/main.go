@@ -1,6 +1,4 @@
-// logger to print log entry (with color)
-// this logger would be bind by importing
-package output
+package console
 
 import (
 	"fmt"
@@ -10,48 +8,38 @@ import (
 
 	"github.com/bclicn/color"
 
+	"github.com/genofire/logmania/lib"
 	"github.com/genofire/logmania/log"
+	"github.com/genofire/logmania/notify"
 )
 
 var (
-	TimeFormat           = "2006-01-02 15:04:05"
-	ShowTime             = true
-	AboveLevel           = log.InfoLevel
-	errOutput  io.Writer = os.Stderr
-	output     io.Writer = os.Stdout
+	errOutput io.Writer = os.Stderr
+	output    io.Writer = os.Stdout
 )
 
 // logger for output
-type Logger struct {
-	log.Logger
+type Notifier struct {
+	notify.Notifier
 	TimeFormat string
 	ShowTime   bool
-	AboveLevel log.LogLevel
 }
 
-// CurrentLogger (for override settings e.g. AboveLevel,ShowTime or TimeFormat)
-var CurrentLogger *Logger
-
-// create a new output logger
-func NewLogger() *Logger {
-	return &Logger{
+func Init(config *lib.NotifyConfig) notify.Notifier {
+	return &Notifier{
 		TimeFormat: "2006-01-02 15:04:05",
 		ShowTime:   true,
-		AboveLevel: log.InfoLevel,
 	}
 }
 
 // handle a log entry (print it on the terminal with color)
-func (l *Logger) Hook(e *log.Entry) {
-	if e.Level < AboveLevel {
-		return
-	}
+func (n *Notifier) Send(e *log.Entry) {
 	v := []interface{}{}
 	format := "[%s] %s"
 
-	if ShowTime {
+	if n.ShowTime {
 		format = "%s [%s] %s"
-		v = append(v, color.LightBlue(time.Now().Format(TimeFormat)))
+		v = append(v, color.LightBlue(time.Now().Format(n.TimeFormat)))
 	}
 	lvl := e.Level.String()
 	switch e.Level {
@@ -85,11 +73,8 @@ func (l *Logger) Hook(e *log.Entry) {
 	}
 }
 
-// do nothing - terminal did not need something to close
-func (l *Logger) Close() {
-}
+func (n *Notifier) Close() {}
 
 func init() {
-	CurrentLogger = NewLogger()
-	log.AddLogger("output", CurrentLogger)
+	notify.AddNotifier(Init)
 }

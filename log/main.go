@@ -5,23 +5,25 @@ import "fmt"
 
 // a struct with all information of a log entry
 type Entry struct {
-	Level  LogLevel               `json:"level"`
-	Fields map[string]interface{} `json:"fields"`
-	Text   string                 `json:"text"`
+	Level    LogLevel               `json:"level"`
+	Hostname string                 `json:"hostname"`
+	Service  string                 `json:"service"`
+	Fields   map[string]interface{} `json:"fields"`
+	Text     string                 `json:"text"`
 }
 
-// save/out current state of log entry
+// Save/out current state of log entry
 func (e *Entry) Log(level LogLevel, v ...interface{}) {
 	e.Text = fmt.Sprint(v...)
 	e.Level = level
-	save(e)
+	Save(e)
 }
 
-// save/out current state of log entry with formation
+// Save/out current state of log entry with formation
 func (e *Entry) Logf(level LogLevel, format string, v ...interface{}) {
 	e.Text = fmt.Sprintf(format, v...)
 	e.Level = level
-	save(e)
+	Save(e)
 }
 
 // init new log entry

@@ -1,7 +1,6 @@
 package xmpp
 
 import (
-	"github.com/genofire/logmania/database"
 	"github.com/genofire/logmania/lib"
 	"github.com/genofire/logmania/log"
 	"github.com/genofire/logmania/notify"
@@ -13,7 +12,7 @@ type Notifier struct {
 	client *xmpp.Client
 }
 
-func NotifyInit(config *lib.NotifyConfig) notify.Notifier {
+func Init(config *lib.NotifyConfig) notify.Notifier {
 	options := xmpp.Options{
 		Host:          config.XMPP.Host,
 		User:          config.XMPP.Username,
@@ -31,15 +30,17 @@ func NotifyInit(config *lib.NotifyConfig) notify.Notifier {
 	return &Notifier{client: client}
 }
 
-func (n *Notifier) Send(e *database.Entry) {
-	users := database.UserByApplication(e.ApplicationID)
+func (n *Notifier) Send(e *log.Entry) {
+	/*users :=
 	for _, user := range users {
 		if user.NotifyXMPP && log.LogLevel(e.Level) >= user.NotifyAfterLoglevel {
 			n.client.SendHtml(xmpp.Chat{Remote: user.XMPP, Type: "chat", Text: formatEntry(e)})
 		}
-	}
+	}*/
 }
 
+func (n *Notifier) Close() {}
+
 func init() {
-	notify.AddNotifier(NotifyInit)
+	notify.AddNotifier(Init)
 }

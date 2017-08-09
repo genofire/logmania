@@ -4,25 +4,15 @@ import (
 	"io/ioutil"
 
 	"github.com/BurntSushi/toml"
+
 	"github.com/genofire/logmania/log"
 )
 
 // Struct of the configuration
 // e.g. under github.com/genofire/logmania/logmania_example.conf
 type Config struct {
-	API struct {
-		Bind        string `toml:"bind"`
-		Interactive bool   `toml:"interactive"`
-	} `toml:"api"`
-	Notify   NotifyConfig `toml:"notify"`
-	Database struct {
-		Type    string `toml:"type"`
-		Connect string `toml:"connect"`
-	} `toml:"database"`
-	Webserver struct {
-		Enable bool   `toml:"enable"`
-		Bind   string `toml:"bind"`
-	} `toml:"webserver"`
+	Notify  NotifyConfig  `toml:"notify"`
+	Receive ReceiveConfig `toml:"receive"`
 }
 
 type NotifyConfig struct {
@@ -37,11 +27,19 @@ type NotifyConfig struct {
 		StatusMessage string `toml:"status_message"`
 		StartupNotify string `toml:"startup_notify"`
 	} `toml:"xmpp"`
+	IRC struct {
+	} `toml:"irc"`
+}
+
+type ReceiveConfig struct {
+	Syslog struct {
+		Bind string `toml:"bind"`
+	} `toml:"syslog"`
 }
 
 // read configuration from a file (use toml as file-format)
 func ReadConfig(path string) (*Config, error) {
-	log.Debugf("load of configfile: %s", path)
+	log.Infof("load of configfile: %s", path)
 	var config Config
 	file, _ := ioutil.ReadFile(path)
 	err := toml.Unmarshal(file, &config)
