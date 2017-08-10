@@ -24,31 +24,37 @@ import (
 )
 
 var (
-	configPath string
-	config     *lib.Config
-	notifier   notify.Notifier
-	receiver   receive.Receiver
-	logChannel chan *log.Entry
+	configPath   string
+	config       *lib.Config
+	notifyConfig *notify.NotifyState
+	notifier     notify.Notifier
+	receiver     receive.Receiver
+	logChannel   chan *log.Entry
 )
 
 func main() {
 	flag.StringVar(&configPath, "config", "logmania.conf", "config file")
 	flag.Parse()
 
-	log.Info("starting logmania")
-
 	config, err := lib.ReadConfig(configPath)
 	if config == nil || err != nil {
 		log.Panicf("Could not load '%s' for configuration.", configPath)
 	}
 
-	notifier = allNotify.Init(&config.Notify)
+	notifyConfig := notify.ReadStateFile(config.Notify.StateFile)
+	go notifyConfig.Saver(config.Notify.StateFile)
+
+	notifier = allNotify.Init(&config.Notify, notifyConfig)
 	log.Save = notifier.Send
+	logChannel = make(chan *log.Entry)
+
 	go func() {
 		for a := range logChannel {
-			notifier.Send(a)
+			log.Save(a)
 		}
 	}()
+
+	log.Info("starting logmania")
 
 	receiver = allReceiver.Init(&config.Receive, logChannel)
 
@@ -91,5 +97,5 @@ func reload() {
 	go receiver.Listen()
 
 	notifier.Close()
-	notifier = allNotify.Init(&config.Notify)
+	notifier = allNotify.Init(&config.Notify, notifyConfig)
 }

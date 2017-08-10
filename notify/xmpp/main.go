@@ -10,9 +10,10 @@ import (
 type Notifier struct {
 	notify.Notifier
 	client *xmpp.Client
+	state  *notify.NotifyState
 }
 
-func Init(config *lib.NotifyConfig) notify.Notifier {
+func Init(config *lib.NotifyConfig, state *notify.NotifyState) notify.Notifier {
 	options := xmpp.Options{
 		Host:          config.XMPP.Host,
 		User:          config.XMPP.Username,
@@ -27,16 +28,17 @@ func Init(config *lib.NotifyConfig) notify.Notifier {
 	if err != nil {
 		return nil
 	}
-	return &Notifier{client: client}
+	return &Notifier{client: client, state: state}
 }
 
 func (n *Notifier) Send(e *log.Entry) {
-	/*users :=
-	for _, user := range users {
-		if user.NotifyXMPP && log.LogLevel(e.Level) >= user.NotifyAfterLoglevel {
-			n.client.SendHtml(xmpp.Chat{Remote: user.XMPP, Type: "chat", Text: formatEntry(e)})
-		}
-	}*/
+	to := n.state.SendTo(e)
+	if to == nil {
+		return
+	}
+	for _, to := range to {
+		n.client.SendHtml(xmpp.Chat{Remote: to, Type: "chat", Text: formatEntry(e)})
+	}
 }
 
 func (n *Notifier) Close() {}

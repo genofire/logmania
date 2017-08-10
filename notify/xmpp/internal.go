@@ -1,7 +1,11 @@
 package xmpp
 
-import "github.com/genofire/logmania/log"
+import (
+	"fmt"
+
+	"github.com/genofire/logmania/log"
+)
 
 func formatEntry(e *log.Entry) string {
-	return e.Text
+	return fmt.Sprintf("[%s] [%s] %s", e.Hostname, e.Level, e.Text)
 }

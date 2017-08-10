@@ -1,8 +1,13 @@
 package syslog
 
-import "github.com/genofire/logmania/log"
+import (
+	"regexp"
+	"strconv"
 
-var SyslogPriorityMap = map[uint]log.LogLevel{
+	"github.com/genofire/logmania/log"
+)
+
+var SyslogPriorityMap = map[int]log.LogLevel{
 	0: log.PanicLevel,
 	1: log.PanicLevel,
 	2: log.PanicLevel,
@@ -13,23 +18,24 @@ var SyslogPriorityMap = map[uint]log.LogLevel{
 	7: log.DebugLevel,
 }
 
-func toLogEntry(logParts map[string]interface{}) *log.Entry {
-	severityID := uint(logParts["severity"].(int))
-	level := SyslogPriorityMap[severityID]
+func toLogEntry(msg []byte, from string) *log.Entry {
+	re := regexp.MustCompile("<([0-9]*)>(.*)")
+	match := re.FindStringSubmatch(string(msg))
 
-	if _, ok := logParts["content"]; ok {
+	if len(match) <= 1 {
 		return &log.Entry{
-			Level:    level,
-			Hostname: logParts["hostname"].(string),
-			Service:  logParts["tag"].(string),
-			Text:     logParts["content"].(string),
+			Level:    log.DebugLevel,
+			Text:     string(msg),
+			Hostname: from,
 		}
 	}
+	v, _ := strconv.Atoi(match[1])
+	prio := v % 8
+	text := match[2]
 
 	return &log.Entry{
-		Level:    level,
-		Hostname: logParts["hostname"].(string),
-		Service:  logParts["app_name"].(string),
-		Text:     logParts["message"].(string),
+		Level:    SyslogPriorityMap[prio],
+		Text:     text,
+		Hostname: from,
 	}
 }

@@ -25,7 +25,7 @@ type Notifier struct {
 	ShowTime   bool
 }
 
-func Init(config *lib.NotifyConfig) notify.Notifier {
+func Init(config *lib.NotifyConfig, state *notify.NotifyState) notify.Notifier {
 	return &Notifier{
 		TimeFormat: "2006-01-02 15:04:05",
 		ShowTime:   true,
@@ -35,12 +35,17 @@ func Init(config *lib.NotifyConfig) notify.Notifier {
 // handle a log entry (print it on the terminal with color)
 func (n *Notifier) Send(e *log.Entry) {
 	v := []interface{}{}
-	format := "[%s] %s"
+	format := "[%s]"
 
 	if n.ShowTime {
-		format = "%s [%s] %s"
+		format = "%s [%s]"
 		v = append(v, color.LightBlue(time.Now().Format(n.TimeFormat)))
 	}
+	if e.Hostname != "" {
+		format = fmt.Sprintf("%s [%%s]", format)
+		v = append(v, color.Purple(e.Hostname))
+	}
+	format = fmt.Sprintf("%s %%s", format)
 	lvl := e.Level.String()
 	switch e.Level {
 	case log.DebugLevel:

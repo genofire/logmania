@@ -1,5 +1,6 @@
-// logger to bind at github.com/genofire/logmania/log.AddLogger to send log entries to logmania server
 package client
+
+/* logger to bind at github.com/genofire/logmania/log.AddLogger to send log entries to logmania server
 
 import (
 	"fmt"
@@ -80,3 +81,4 @@ func Init(url, token string, AboveLevel log.LogLevel) *Logger {
 	log.AddLogger(LOGGER_NAME, CurrentLogger)
 	return CurrentLogger
 }
+*/

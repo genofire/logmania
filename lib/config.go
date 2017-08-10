@@ -16,7 +16,8 @@ type Config struct {
 }
 
 type NotifyConfig struct {
-	XMPP struct {
+	StateFile string `toml:"state_file"`
+	XMPP      struct {
 		Host          string `toml:"host"`
 		Username      string `toml:"username"`
 		Password      string `toml:"password"`
@@ -33,7 +34,8 @@ type NotifyConfig struct {
 
 type ReceiveConfig struct {
 	Syslog struct {
-		Bind string `toml:"bind"`
+		Type    string `toml:"type"`
+		Address string `toml:"address"`
 	} `toml:"syslog"`
 }
 

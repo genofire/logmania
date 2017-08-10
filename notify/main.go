@@ -12,7 +12,7 @@ type Notifier interface {
 	Close()
 }
 
-type NotifyInit func(*lib.NotifyConfig) Notifier
+type NotifyInit func(*lib.NotifyConfig, *NotifyState) Notifier
 
 func AddNotifier(n NotifyInit) {
 	NotifyRegister = append(NotifyRegister, n)

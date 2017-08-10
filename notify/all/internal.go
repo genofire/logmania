@@ -12,10 +12,10 @@ type Notifier struct {
 	channelNotify chan *log.Entry
 }
 
-func Init(config *lib.NotifyConfig) notify.Notifier {
+func Init(config *lib.NotifyConfig, state *notify.NotifyState) notify.Notifier {
 	var list []notify.Notifier
 	for _, init := range notify.NotifyRegister {
-		notify := init(config)
+		notify := init(config, state)
 
 		if notify == nil {
 			continue

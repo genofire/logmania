@@ -1,7 +1,7 @@
 package syslog
 
 import (
-	"gopkg.in/mcuadros/go-syslog.v2"
+	"net"
 
 	"github.com/genofire/logmania/lib"
 	"github.com/genofire/logmania/log"
@@ -9,43 +9,49 @@ import (
 )
 
 type Receiver struct {
-	channel       syslog.LogPartsChannel
-	exportChannel chan *log.Entry
-	server        *syslog.Server
 	receive.Receiver
+	exportChannel chan *log.Entry
+	serverSocket  *net.UDPConn
 }
 
 func Init(config *lib.ReceiveConfig, exportChannel chan *log.Entry) receive.Receiver {
-	channel := make(syslog.LogPartsChannel)
-	handler := syslog.NewChannelHandler(channel)
+	addr, err := net.ResolveUDPAddr(config.Syslog.Type, config.Syslog.Address)
+	ln, err := net.ListenUDP(config.Syslog.Type, addr)
 
-	server := syslog.NewServer()
-	server.SetFormat(syslog.RFC5424)
-	server.SetHandler(handler)
-	server.ListenUDP(config.Syslog.Bind)
-
-	log.Info("syslog binded to: ", config.Syslog.Bind)
-
-	return &Receiver{
-		channel:       channel,
-		server:        server,
+	if err != nil {
+		log.Error("syslog init ", err)
+		return nil
+	}
+	recv := &Receiver{
+		serverSocket:  ln,
 		exportChannel: exportChannel,
+	}
+
+	log.Info("syslog init")
+
+	return recv
+}
+
+const maxDataGramSize = 8192
+
+func (rc *Receiver) Listen() {
+	log.Info("syslog listen")
+	for {
+		buf := make([]byte, maxDataGramSize)
+		n, src, err := rc.serverSocket.ReadFromUDP(buf)
+		if err != nil {
+			log.Warn("failed to accept connection", err)
+			continue
+		}
+
+		raw := make([]byte, n)
+		copy(raw, buf)
+		rc.exportChannel <- toLogEntry(raw, src.IP.String())
 	}
 }
 
-func (rc *Receiver) Listen() {
-	rc.server.Boot()
-	log.Info("boot syslog")
-	go func(channel syslog.LogPartsChannel) {
-		for logParts := range channel {
-			rc.exportChannel <- toLogEntry(logParts)
-		}
-	}(rc.channel)
-}
-
 func (rc *Receiver) Close() {
-	rc.server.Kill()
-	rc.server.Wait()
+	rc.serverSocket.Close()
 }
 
 func init() {
