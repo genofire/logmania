@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"regexp"
 	"time"
@@ -10,47 +11,51 @@ import (
 )
 
 type NotifyState struct {
-	Hostname  map[string]string           `json:"hostname"`
-	HostTo    map[string][]string         `json:"host_to"`
-	MaxPrioIn map[string]log.LogLevel     `json:"maxLevel"`
-	RegexIn   map[string][]string         `json:"regexIn"`
-	regexIn   map[string][]*regexp.Regexp `json:"-"`
+	Hostname  map[string]string                    `json:"hostname"`
+	HostTo    map[string]map[string]bool           `json:"host_to"`
+	MaxPrioIn map[string]log.LogLevel              `json:"maxLevel"`
+	RegexIn   map[string]map[string]bool           `json:"regexIn"`
+	regexIn   map[string]map[string]*regexp.Regexp `json:"-"`
 }
 
 func (state *NotifyState) SendTo(e *log.Entry) []string {
 	if to, ok := state.HostTo[e.Hostname]; ok {
 		var toList []string
-		for _, toEntry := range to {
+		for toEntry, _ := range to {
 			if lvl := state.MaxPrioIn[toEntry]; e.Level < lvl {
 				continue
 			}
 			toList = append(toList, toEntry)
 		}
-		e.Hostname = state.Hostname[e.Hostname]
+		if hostname, ok := state.Hostname[e.Hostname]; ok {
+			e.Hostname = hostname
+		}
 		return toList
+	} else {
+		state.HostTo[e.Hostname] = make(map[string]bool)
 	}
 	return nil
 }
 
 func ReadStateFile(path string) *NotifyState {
-	var state *NotifyState
+	var state NotifyState
 	if f, err := os.Open(path); err == nil { // transform data to legacy meshviewer
-		if err = json.NewDecoder(f).Decode(state); err == nil {
-			log.Info("loaded", len(state.HostTo), "nodes")
-			state.regexIn = make(map[string][]*regexp.Regexp)
-			return state
+		if err = json.NewDecoder(f).Decode(&state); err == nil {
+			fmt.Println("loaded", len(state.HostTo), "hosts")
+			state.regexIn = make(map[string]map[string]*regexp.Regexp)
+			return &state
 		} else {
-			log.Error("failed to unmarshal nodes:", err)
+			fmt.Println("failed to unmarshal nodes:", err)
 		}
 	} else {
-		log.Error("failed to open state notify file: ", path, ":", err)
+		fmt.Println("failed to open state notify file: ", path, ":", err)
 	}
 	return &NotifyState{
 		Hostname:  make(map[string]string),
-		HostTo:    make(map[string][]string),
+		HostTo:    make(map[string]map[string]bool),
 		MaxPrioIn: make(map[string]log.LogLevel),
-		RegexIn:   make(map[string][]string),
-		regexIn:   make(map[string][]*regexp.Regexp),
+		RegexIn:   make(map[string]map[string]bool),
+		regexIn:   make(map[string]map[string]*regexp.Regexp),
 	}
 }
 

@@ -19,6 +19,8 @@ func NewBot(state *configNotify.NotifyState) *Bot {
 	b.commands = map[string]commandFunc{
 		"help":          b.help,
 		"send-to":       b.sendTo,
+		"send-list":     b.sendList,
+		"send-rm":       b.sendRemove,
 		"hostname-set":  b.setHostname,
 		"hostname-list": b.listHostname,
 		"filter-set":    b.setMaxfilter,
@@ -29,7 +31,7 @@ func NewBot(state *configNotify.NotifyState) *Bot {
 
 func (b *Bot) Handle(answer func(string), from, msg string) {
 	msgParts := strings.Split(msg, " ")
-	if msgParts[0][0] != '!' {
+	if len(msgParts[0]) <= 0 || msgParts[0][0] != '!' {
 		return
 	}
 	cmdName := msgParts[0][1:]

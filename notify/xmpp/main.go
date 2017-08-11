@@ -1,6 +1,9 @@
 package xmpp
 
 import (
+	"fmt"
+	"strings"
+
 	xmpp "github.com/mattn/go-xmpp"
 
 	"github.com/genofire/logmania/bot"
@@ -41,7 +44,7 @@ func Init(config *lib.NotifyConfig, state *configNotify.NotifyState, bot *bot.Bo
 			case xmpp.Chat:
 				bot.Handle(func(answer string) {
 					client.SendHtml(xmpp.Chat{Remote: v.Remote, Type: "chat", Text: answer})
-				}, v.Remote, v.Text)
+				}, fmt.Sprintf("xmpp:%s", strings.Split(v.Remote, "/")[0]), v.Text)
 			}
 		}
 	}()
@@ -54,8 +57,20 @@ func (n *Notifier) Send(e *log.Entry) {
 	if to == nil {
 		return
 	}
-	for _, to := range to {
-		n.client.SendHtml(xmpp.Chat{Remote: to, Type: "chat", Text: formatEntry(e)})
+	for _, toAddr := range to {
+		to := strings.TrimPrefix(toAddr, "xmpp:")
+		if strings.Contains(toAddr, "conference") || strings.Contains(toAddr, "irc") {
+			n.client.JoinMUCNoHistory(to, "logmania")
+			_, err := n.client.SendHtml(xmpp.Chat{Remote: to, Type: "groupchat", Text: formatEntry(e)})
+			if err != nil {
+				fmt.Println("xmpp to ", to, " error:", err)
+			}
+		} else {
+			_, err := n.client.SendHtml(xmpp.Chat{Remote: to, Type: "chat", Text: formatEntry(e)})
+			if err != nil {
+				fmt.Println("xmpp to ", to, " error:", err)
+			}
+		}
 	}
 }
 
