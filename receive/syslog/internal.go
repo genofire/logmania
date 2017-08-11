@@ -1,9 +1,7 @@
 package syslog
 
 import (
-	"regexp"
-	"strconv"
-
+	libSyslog "github.com/genofire/logmania/lib/syslog"
 	"github.com/genofire/logmania/log"
 )
 
@@ -19,23 +17,11 @@ var SyslogPriorityMap = map[int]log.LogLevel{
 }
 
 func toLogEntry(msg []byte, from string) *log.Entry {
-	re := regexp.MustCompile("<([0-9]*)>(.*)")
-	match := re.FindStringSubmatch(string(msg))
-
-	if len(match) <= 1 {
-		return &log.Entry{
-			Level:    log.DebugLevel,
-			Text:     string(msg),
-			Hostname: from,
-		}
-	}
-	v, _ := strconv.Atoi(match[1])
-	prio := v % 8
-	text := match[2]
+	syslogMsg := libSyslog.Parse(msg)
 
 	return &log.Entry{
-		Level:    SyslogPriorityMap[prio],
-		Text:     text,
+		Level:    SyslogPriorityMap[syslogMsg.Severity],
+		Text:     syslogMsg.Content,
 		Hostname: from,
 	}
 }

@@ -1,19 +1,22 @@
 package xmpp
 
 import (
+	xmpp "github.com/mattn/go-xmpp"
+
+	"github.com/genofire/logmania/bot"
 	"github.com/genofire/logmania/lib"
 	"github.com/genofire/logmania/log"
 	"github.com/genofire/logmania/notify"
-	xmpp "github.com/mattn/go-xmpp"
+	configNotify "github.com/genofire/logmania/notify/config"
 )
 
 type Notifier struct {
 	notify.Notifier
 	client *xmpp.Client
-	state  *notify.NotifyState
+	state  *configNotify.NotifyState
 }
 
-func Init(config *lib.NotifyConfig, state *notify.NotifyState) notify.Notifier {
+func Init(config *lib.NotifyConfig, state *configNotify.NotifyState, bot *bot.Bot) notify.Notifier {
 	options := xmpp.Options{
 		Host:          config.XMPP.Host,
 		User:          config.XMPP.Username,
@@ -28,6 +31,21 @@ func Init(config *lib.NotifyConfig, state *notify.NotifyState) notify.Notifier {
 	if err != nil {
 		return nil
 	}
+	go func() {
+		for {
+			chat, err := client.Recv()
+			if err != nil {
+				log.Warn(err)
+			}
+			switch v := chat.(type) {
+			case xmpp.Chat:
+				bot.Handle(func(answer string) {
+					client.SendHtml(xmpp.Chat{Remote: v.Remote, Type: "chat", Text: answer})
+				}, v.Remote, v.Text)
+			}
+		}
+	}()
+	log.Info("xmpp startup")
 	return &Notifier{client: client, state: state}
 }
 

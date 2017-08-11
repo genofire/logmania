@@ -8,9 +8,11 @@ import (
 
 	"github.com/bclicn/color"
 
+	"github.com/genofire/logmania/bot"
 	"github.com/genofire/logmania/lib"
 	"github.com/genofire/logmania/log"
 	"github.com/genofire/logmania/notify"
+	configNotify "github.com/genofire/logmania/notify/config"
 )
 
 var (
@@ -25,7 +27,7 @@ type Notifier struct {
 	ShowTime   bool
 }
 
-func Init(config *lib.NotifyConfig, state *notify.NotifyState) notify.Notifier {
+func Init(config *lib.NotifyConfig, state *configNotify.NotifyState, bot *bot.Bot) notify.Notifier {
 	return &Notifier{
 		TimeFormat: "2006-01-02 15:04:05",
 		ShowTime:   true,
@@ -34,6 +36,9 @@ func Init(config *lib.NotifyConfig, state *notify.NotifyState) notify.Notifier {
 
 // handle a log entry (print it on the terminal with color)
 func (n *Notifier) Send(e *log.Entry) {
+	if e.Hostname != "" {
+		return
+	}
 	v := []interface{}{}
 	format := "[%s]"
 

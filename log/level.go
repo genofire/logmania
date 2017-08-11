@@ -30,6 +30,23 @@ func (l LogLevel) String() string {
 	return "NOT VALID"
 }
 
+func NewLoglevel(by string) LogLevel {
+	switch by {
+	case "debug":
+		return DebugLevel
+	case "info":
+		return InfoLevel
+	case "warn":
+		return WarnLevel
+	case "error":
+		return ErrorLevel
+	case "panic":
+		return PanicLevel
+
+	}
+	return DebugLevel
+}
+
 /**
  * log command
  */

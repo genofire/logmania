@@ -1,4 +1,4 @@
-package notify
+package config
 
 import (
 	"encoding/json"
@@ -21,7 +21,7 @@ func (state *NotifyState) SendTo(e *log.Entry) []string {
 	if to, ok := state.HostTo[e.Hostname]; ok {
 		var toList []string
 		for _, toEntry := range to {
-			if lvl := state.MaxPrioIn[toEntry]; e.Level > lvl {
+			if lvl := state.MaxPrioIn[toEntry]; e.Level < lvl {
 				continue
 			}
 			toList = append(toList, toEntry)

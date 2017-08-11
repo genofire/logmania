@@ -15,21 +15,24 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/genofire/logmania/bot"
 	"github.com/genofire/logmania/lib"
 	log "github.com/genofire/logmania/log"
 	"github.com/genofire/logmania/notify"
 	allNotify "github.com/genofire/logmania/notify/all"
+	configNotify "github.com/genofire/logmania/notify/config"
 	"github.com/genofire/logmania/receive"
 	allReceiver "github.com/genofire/logmania/receive/all"
 )
 
 var (
-	configPath   string
-	config       *lib.Config
-	notifyConfig *notify.NotifyState
-	notifier     notify.Notifier
-	receiver     receive.Receiver
-	logChannel   chan *log.Entry
+	configPath  string
+	config      *lib.Config
+	notifyState *configNotify.NotifyState
+	notifier    notify.Notifier
+	receiver    receive.Receiver
+	logChannel  chan *log.Entry
+	logmaniaBot *bot.Bot
 )
 
 func main() {
@@ -41,10 +44,12 @@ func main() {
 		log.Panicf("Could not load '%s' for configuration.", configPath)
 	}
 
-	notifyConfig := notify.ReadStateFile(config.Notify.StateFile)
-	go notifyConfig.Saver(config.Notify.StateFile)
+	notifyState := configNotify.ReadStateFile(config.Notify.StateFile)
+	go notifyState.Saver(config.Notify.StateFile)
 
-	notifier = allNotify.Init(&config.Notify, notifyConfig)
+	logmaniaBot = bot.NewBot(notifyState)
+
+	notifier = allNotify.Init(&config.Notify, notifyState, logmaniaBot)
 	log.Save = notifier.Send
 	logChannel = make(chan *log.Entry)
 
@@ -97,5 +102,5 @@ func reload() {
 	go receiver.Listen()
 
 	notifier.Close()
-	notifier = allNotify.Init(&config.Notify, notifyConfig)
+	notifier = allNotify.Init(&config.Notify, notifyState, logmaniaBot)
 }
