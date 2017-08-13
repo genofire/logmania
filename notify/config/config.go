@@ -10,18 +10,22 @@ import (
 	"github.com/genofire/logmania/log"
 )
 
+const AlertMsg = "alert service from logmania, device did not send new message for a while"
+
 type NotifyState struct {
 	Hostname       map[string]string                    `json:"hostname"`
 	HostTo         map[string]map[string]bool           `json:"host_to"`
 	MaxPrioIn      map[string]log.LogLevel              `json:"maxLevel"`
 	RegexIn        map[string]map[string]*regexp.Regexp `json:"regexIn"`
 	Lastseen       map[string]time.Time                 `json:"lastseen,omitempty"`
-	LastseenNotify map[string]time.Time                 `json:"lastseen_notify,omitempty"`
+	LastseenNotify map[string]time.Time                 `json:"-"`
 }
 
 func (state *NotifyState) SendTo(e *log.Entry) []string {
 	if to, ok := state.HostTo[e.Hostname]; ok {
-		state.Lastseen[e.Hostname] = time.Now()
+		if e.Text != AlertMsg && e.Hostname != "" {
+			state.Lastseen[e.Hostname] = time.Now()
+		}
 		var toList []string
 		for toEntry, _ := range to {
 			if lvl := state.MaxPrioIn[toEntry]; e.Level < lvl {
@@ -105,6 +109,26 @@ func (state *NotifyState) Saver(path string) {
 
 	for range c {
 		state.SaveJSON(path)
+	}
+}
+
+func (state *NotifyState) Alert(expired time.Duration, send func(e *log.Entry)) {
+	c := time.Tick(time.Minute)
+
+	for range c {
+		now := time.Now()
+		for host, time := range state.Lastseen {
+			if time.Before(now.Add(expired * -2)) {
+				if timeNotify, ok := state.LastseenNotify[host]; !ok || !time.Before(timeNotify) {
+					state.LastseenNotify[host] = now
+					send(&log.Entry{
+						Hostname: host,
+						Level:    log.ErrorLevel,
+						Text:     AlertMsg,
+					})
+				}
+			}
+		}
 	}
 }
 

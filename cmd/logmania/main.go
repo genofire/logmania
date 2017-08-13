@@ -59,6 +59,8 @@ func main() {
 		}
 	}()
 
+	go notifyState.Alert(config.Notify.AlertCheck.Duration, log.Save)
+
 	log.Info("starting logmania")
 
 	receiver = allReceiver.Init(&config.Receive, logChannel)

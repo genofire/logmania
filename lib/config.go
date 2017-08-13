@@ -16,8 +16,9 @@ type Config struct {
 }
 
 type NotifyConfig struct {
-	StateFile string `toml:"state_file"`
-	XMPP      struct {
+	StateFile  string   `toml:"state_file"`
+	AlertCheck Duration `toml:"alert_check"`
+	XMPP       struct {
 		Host          string `toml:"host"`
 		Username      string `toml:"username"`
 		Password      string `toml:"password"`
