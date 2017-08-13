@@ -2,6 +2,10 @@ package bot
 
 import (
 	"fmt"
+	"strings"
+	"time"
+
+	timeago "github.com/ararog/timeago"
 
 	"github.com/genofire/logmania/log"
 )
@@ -37,7 +41,7 @@ func (b *Bot) sendTo(answer func(string), from string, params []string) {
 	answer(fmt.Sprintf("added %s in list of %s", to, host))
 }
 
-//TODO add a chat to send log to a chat
+//add a chat to send log to a chat
 func (b *Bot) sendRemove(answer func(string), from string, params []string) {
 	if len(params) < 1 {
 		answer("invalid: CMD IPAddress\n or\n CMD IPAddress to")
@@ -62,10 +66,27 @@ func (b *Bot) sendRemove(answer func(string), from string, params []string) {
 // list all hostname with the chat where it send to
 func (b *Bot) sendList(answer func(string), from string, params []string) {
 	msg := "sending:\n"
+	all := false
+	of := from
+	if len(params) > 0 {
+		if params[0] == "all" {
+			all = true
+		} else {
+			of = params[0]
+		}
+	}
 	for ip, toMap := range b.state.HostTo {
 		toList := ""
+		show := all
 		for to := range toMap {
-			toList = fmt.Sprintf("%s , %s", toList, to)
+			if all {
+				toList = fmt.Sprintf("%s , %s", toList, to)
+			} else if to == of {
+				show = true
+			}
+		}
+		if !show {
+			continue
 		}
 		if len(toList) > 3 {
 			toList = toList[3:]
@@ -76,6 +97,7 @@ func (b *Bot) sendList(answer func(string), from string, params []string) {
 			msg = fmt.Sprintf("%s%s: %s\n", msg, ip, toList)
 		}
 	}
+
 	answer(msg)
 }
 
@@ -83,7 +105,12 @@ func (b *Bot) sendList(answer func(string), from string, params []string) {
 func (b *Bot) listHostname(answer func(string), from string, params []string) {
 	msg := "hostnames:\n"
 	for ip, hostname := range b.state.Hostname {
-		msg = fmt.Sprintf("%s%s - %s\n", msg, ip, hostname)
+		if last, ok := b.state.Lastseen[ip]; ok {
+			got, _ := timeago.TimeAgoWithTime(time.Now(), last)
+			msg = fmt.Sprintf("%s%s - %s (%s)\n", msg, ip, hostname, got)
+		} else {
+			msg = fmt.Sprintf("%s%s - %s\n", msg, ip, hostname)
+		}
 	}
 	answer(msg)
 }
@@ -104,9 +131,20 @@ func (b *Bot) setHostname(answer func(string), from string, params []string) {
 
 // set a filter by max
 func (b *Bot) listMaxfilter(answer func(string), from string, params []string) {
-	msg := "filters:\n"
-	for to, filter := range b.state.MaxPrioIn {
-		msg = fmt.Sprintf("%s%s - %s\n", msg, to, filter.String())
+	msg := "filters: "
+	if len(params) > 0 && params[0] == "all" {
+		msg = fmt.Sprintf("%s\n", msg)
+		for to, filter := range b.state.MaxPrioIn {
+			msg = fmt.Sprintf("%s%s - %s\n", msg, to, filter.String())
+		}
+	} else {
+		of := from
+		if len(params) > 0 {
+			of = params[0]
+		}
+		if filter, ok := b.state.MaxPrioIn[of]; ok {
+			msg = fmt.Sprintf("%s of %s is %s", msg, of, filter)
+		}
 	}
 	answer(msg)
 }
@@ -128,4 +166,55 @@ func (b *Bot) setMaxfilter(answer func(string), from string, params []string) {
 	b.state.MaxPrioIn[to] = max
 
 	answer(fmt.Sprintf("set filter for %s to %s", to, max.String()))
+}
+
+// list of regex filter
+func (b *Bot) listRegex(answer func(string), from string, params []string) {
+	msg := "regexs:\n"
+	if len(params) > 0 && params[0] == "all" {
+		for to, regexs := range b.state.RegexIn {
+			msg = fmt.Sprintf("%s%s\n-------------\n", msg, to)
+			for expression := range regexs {
+				msg = fmt.Sprintf("%s - %s\n", msg, expression)
+			}
+		}
+	} else {
+		of := from
+		if len(params) > 0 {
+			of = params[0]
+		}
+		if regexs, ok := b.state.RegexIn[of]; ok {
+			msg = fmt.Sprintf("%s%s\n-------------\n", msg, from)
+			for expression := range regexs {
+				msg = fmt.Sprintf("%s - %s\n", msg, expression)
+			}
+		}
+	}
+	answer(msg)
+}
+
+// add a regex filter
+func (b *Bot) addRegex(answer func(string), from string, params []string) {
+	if len(params) < 1 {
+		answer("invalid: CMD regex\n or\n CMD channel regex")
+		return
+	}
+	regex := strings.Join(params, " ")
+
+	if err := b.state.AddRegex(from, regex); err == nil {
+		answer(fmt.Sprintf("add regex for \"%s\" to %s", from, regex))
+	} else {
+		answer(fmt.Sprintf("\"%s\" is no valid regex expression: %s", regex, err))
+	}
+}
+
+// del a regex filter
+func (b *Bot) delRegex(answer func(string), from string, params []string) {
+	if len(params) < 1 {
+		answer("invalid: CMD regex\n or\n CMD channel regex")
+		return
+	}
+	regex := strings.Join(params, " ")
+	delete(b.state.RegexIn[from], regex)
+	b.listRegex(answer, from, []string{})
 }

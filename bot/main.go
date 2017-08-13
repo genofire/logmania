@@ -25,6 +25,9 @@ func NewBot(state *configNotify.NotifyState) *Bot {
 		"hostname-list": b.listHostname,
 		"filter-set":    b.setMaxfilter,
 		"filter-list":   b.listMaxfilter,
+		"regex-add":     b.addRegex,
+		"regex-list":    b.listRegex,
+		"regex-rm":      b.delRegex,
 	}
 	return b
 }
