@@ -56,7 +56,7 @@ func (b *Bot) sendRemove(answer func(string), from string, params []string) {
 	if list, ok := b.state.HostTo[host]; ok {
 		delete(list, to)
 		b.state.HostTo[host] = list
-		answer(fmt.Sprintf("added %s in list of %s", to, host))
+		answer(fmt.Sprintf("removed %s in list of %s", to, host))
 	} else {
 		answer("not found host")
 	}

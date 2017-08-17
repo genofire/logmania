@@ -18,6 +18,7 @@ type Config struct {
 type NotifyConfig struct {
 	StateFile  string   `toml:"state_file"`
 	AlertCheck Duration `toml:"alert_check"`
+	Console    bool     `toml:"debug"`
 	XMPP       struct {
 		Host          string `toml:"host"`
 		Username      string `toml:"username"`
@@ -38,6 +39,10 @@ type ReceiveConfig struct {
 		Type    string `toml:"type"`
 		Address string `toml:"address"`
 	} `toml:"syslog"`
+	JournaldJSON struct {
+		Type    string `toml:"type"`
+		Address string `toml:"address"`
+	} `toml:"journald_json"`
 }
 
 // read configuration from a file (use toml as file-format)

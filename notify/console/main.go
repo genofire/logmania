@@ -25,18 +25,23 @@ type Notifier struct {
 	notify.Notifier
 	TimeFormat string
 	ShowTime   bool
+	Debug      bool
 }
 
 func Init(config *lib.NotifyConfig, state *configNotify.NotifyState, bot *bot.Bot) notify.Notifier {
 	return &Notifier{
 		TimeFormat: "2006-01-02 15:04:05",
 		ShowTime:   true,
+		Debug:      config.Console,
 	}
 }
 
 // handle a log entry (print it on the terminal with color)
 func (n *Notifier) Send(e *log.Entry) {
-	if e.Hostname != "" {
+	if e == nil || n == nil {
+		return
+	}
+	if e.Hostname != "" && !n.Debug {
 		return
 	}
 	v := []interface{}{}
