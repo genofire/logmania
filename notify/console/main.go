@@ -51,10 +51,19 @@ func (n *Notifier) Send(e *log.Entry) {
 		format = "%s [%s]"
 		v = append(v, color.LightBlue(time.Now().Format(n.TimeFormat)))
 	}
-	if e.Hostname != "" {
+	
+	// Hostname and Service
+	if e.Hostname != "" && e.Service != "" {
+		format = fmt.Sprintf("%s [%%s-%%s]", format)
+		v = append(v, color.Purple(e.Hostname), color.Cyan(e.Service))
+	} else if e.Hostname != "" {
 		format = fmt.Sprintf("%s [%%s]", format)
 		v = append(v, color.Purple(e.Hostname))
+	} else if e.Service != "" {
+		format = fmt.Sprintf("%s [%%s]", format)
+		v = append(v, color.Cyan(e.Service))
 	}
+		
 	format = fmt.Sprintf("%s %%s", format)
 	lvl := e.Level.String()
 	switch e.Level {
