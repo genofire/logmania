@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/genofire/logmania/bot"
 	"github.com/genofire/logmania/lib"
@@ -58,8 +59,9 @@ func main() {
 			log.Save(a)
 		}
 	}()
-
-	go notifyState.Alert(config.Notify.AlertCheck.Duration, log.Save)
+	if config.Notify.AlertCheck.Duration > time.Duration(time.Second) {
+		go notifyState.Alert(config.Notify.AlertCheck.Duration, log.Save)
+	}
 
 	log.Info("starting logmania")
 
