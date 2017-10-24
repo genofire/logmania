@@ -1,11 +1,12 @@
 package syslog
 
 import (
+	log "github.com/sirupsen/logrus"
+
 	libSyslog "github.com/genofire/logmania/lib/syslog"
-	"github.com/genofire/logmania/log"
 )
 
-var SyslogPriorityMap = map[int]log.LogLevel{
+var SyslogPriorityMap = map[int]log.Level{
 	0: log.PanicLevel,
 	1: log.PanicLevel,
 	2: log.PanicLevel,
@@ -19,9 +20,10 @@ var SyslogPriorityMap = map[int]log.LogLevel{
 func toLogEntry(msg []byte, from string) *log.Entry {
 	syslogMsg := libSyslog.Parse(msg)
 
-	return &log.Entry{
-		Level:    SyslogPriorityMap[syslogMsg.Severity],
-		Text:     syslogMsg.Content,
-		Hostname: from,
-	}
+	entry := log.NewEntry(nil)
+	entry = entry.WithField("hostname", from)
+	entry.Time = syslogMsg.Timestemp
+	entry.Level = SyslogPriorityMap[syslogMsg.Severity]
+	entry.Message = syslogMsg.Content
+	return entry
 }

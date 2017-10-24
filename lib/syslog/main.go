@@ -45,7 +45,7 @@ func Parse(binaryMsg []byte) *SyslogMessage {
 		}
 	}
 
-	msg.Content = match[2][timeLength:]
+	msg.Content = strings.TrimLeft(match[2][timeLength:], " ")
 
 	/*
 	 TODO: detect other parts in content

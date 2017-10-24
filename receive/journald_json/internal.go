@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"strconv"
 
-	"github.com/genofire/logmania/log"
+	log "github.com/sirupsen/logrus"
 )
 
 type JournalMessage struct {
@@ -34,7 +34,7 @@ type JournalMessage struct {
 	Message   string `json:"MESSAGE"`
 }
 
-var PriorityMap = map[int]log.LogLevel{
+var PriorityMap = map[int]log.Level{
 	0: log.PanicLevel, // emerg
 	1: log.PanicLevel, // alert
 	2: log.PanicLevel, // crit
@@ -57,15 +57,16 @@ func toLogEntry(msg []byte, from string) *log.Entry {
 	if err != nil {
 		return nil
 	}
-	e := &log.Entry{
-		Level:    PriorityMap[prio],
-		Hostname: from,
-		Service:  data.SyslogIdentifier,
-		Text:     data.Message,
-		Fields:   mapEntry,
-	}
+	entry := log.NewEntry(nil)
+	entry = entry.WithFields(mapEntry)
+	entry = entry.WithFields(log.Fields{
+		"hostname": from,
+		"service":  data.SyslogIdentifier,
+	})
 	if data.SystemdUnit == "" {
-		e.Service = data.SystemdUnit
+		entry = entry.WithField("service", data.SystemdUnit)
 	}
-	return e
+	entry.Level = PriorityMap[prio]
+	entry.Message = data.Message
+	return entry
 }

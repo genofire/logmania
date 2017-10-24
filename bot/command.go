@@ -6,8 +6,7 @@ import (
 	"time"
 
 	timeago "github.com/ararog/timeago"
-
-	"github.com/genofire/logmania/log"
+	log "github.com/sirupsen/logrus"
 )
 
 type commandFunc func(func(string), string, []string)
@@ -156,11 +155,18 @@ func (b *Bot) setMaxfilter(answer func(string), from string, params []string) {
 		return
 	}
 	to := from
-	max := log.NewLoglevel(params[0])
+	var max log.Level
+	var err error
 
 	if len(params) > 1 {
 		to = params[0]
-		max = log.NewLoglevel(params[1])
+		max, err = log.ParseLevel(params[1])
+	} else {
+		max, err = log.ParseLevel(params[0])
+	}
+	if err != nil {
+		answer("invalid priority: CMD Priority\n or\n CMD IPAddress Priority")
+		return
 	}
 
 	b.state.MaxPrioIn[to] = max

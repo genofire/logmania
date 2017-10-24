@@ -5,7 +5,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 
-	"github.com/genofire/logmania/log"
+	log "github.com/sirupsen/logrus"
 )
 
 // Struct of the configuration

@@ -1,22 +1,26 @@
 package xmpp
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
 	xmpp "github.com/mattn/go-xmpp"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/genofire/logmania/bot"
 	"github.com/genofire/logmania/lib"
-	"github.com/genofire/logmania/log"
 	"github.com/genofire/logmania/notify"
 	configNotify "github.com/genofire/logmania/notify/config"
 )
 
+var logger = log.WithField("notify", "xmpp")
+
 type Notifier struct {
 	notify.Notifier
-	client *xmpp.Client
-	state  *configNotify.NotifyState
+	client    *xmpp.Client
+	state     *configNotify.NotifyState
+	formatter *log.TextFormatter
 }
 
 func Init(config *lib.NotifyConfig, state *configNotify.NotifyState, bot *bot.Bot) notify.Notifier {
@@ -32,13 +36,14 @@ func Init(config *lib.NotifyConfig, state *configNotify.NotifyState, bot *bot.Bo
 	}
 	client, err := options.NewClient()
 	if err != nil {
+		logger.Error(err)
 		return nil
 	}
 	go func() {
 		for {
 			chat, err := client.Recv()
 			if err != nil {
-				log.Warn(err)
+				logger.Warn(err)
 			}
 			switch v := chat.(type) {
 			case xmpp.Chat:
@@ -48,29 +53,51 @@ func Init(config *lib.NotifyConfig, state *configNotify.NotifyState, bot *bot.Bo
 			}
 		}
 	}()
-	log.Info("xmpp startup")
-	return &Notifier{client: client, state: state}
+	logger.Info("startup")
+	return &Notifier{
+		client: client,
+		state:  state,
+		formatter: &log.TextFormatter{
+			DisableTimestamp: true,
+		},
+	}
 }
 
-func (n *Notifier) Send(e *log.Entry) {
+func (n *Notifier) Fire(e *log.Entry) error {
 	to := n.state.SendTo(e)
 	if to == nil {
-		return
+		return errors.New("no reciever found")
+	}
+	text, err := n.formatter.Format(e)
+	if err != nil {
+		return err
 	}
 	for _, toAddr := range to {
 		to := strings.TrimPrefix(toAddr, "xmpp:")
 		if strings.Contains(toAddr, "conference") || strings.Contains(toAddr, "irc") {
 			n.client.JoinMUCNoHistory(to, "logmania")
-			_, err := n.client.SendHtml(xmpp.Chat{Remote: to, Type: "groupchat", Text: formatEntry(e)})
+			_, err = n.client.SendHtml(xmpp.Chat{Remote: to, Type: "groupchat", Text: string(text)})
 			if err != nil {
-				fmt.Println("xmpp to ", to, " error:", err)
+				logger.Error("xmpp to ", to, " error:", err)
 			}
 		} else {
-			_, err := n.client.SendHtml(xmpp.Chat{Remote: to, Type: "chat", Text: formatEntry(e)})
+			_, err := n.client.SendHtml(xmpp.Chat{Remote: to, Type: "chat", Text: string(text)})
 			if err != nil {
-				fmt.Println("xmpp to ", to, " error:", err)
+				logger.Error("xmpp to ", to, " error:", err)
 			}
 		}
+	}
+	return nil
+}
+
+func (n *Notifier) Levels() []log.Level {
+	return []log.Level{
+		log.DebugLevel,
+		log.InfoLevel,
+		log.WarnLevel,
+		log.ErrorLevel,
+		log.FatalLevel,
+		log.PanicLevel,
 	}
 }
 

@@ -1,16 +1,18 @@
 package notify
 
 import (
+	log "github.com/sirupsen/logrus"
+
 	"github.com/genofire/logmania/bot"
 	"github.com/genofire/logmania/lib"
-	"github.com/genofire/logmania/log"
 	configNotify "github.com/genofire/logmania/notify/config"
 )
 
 var NotifyRegister []NotifyInit
 
 type Notifier interface {
-	Send(entry *log.Entry)
+	Fire(entry *log.Entry) error
+	Levels() []log.Level
 	Close()
 }
 

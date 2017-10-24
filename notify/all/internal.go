@@ -1,9 +1,10 @@
 package all
 
 import (
+	log "github.com/sirupsen/logrus"
+
 	"github.com/genofire/logmania/bot"
 	"github.com/genofire/logmania/lib"
-	"github.com/genofire/logmania/log"
 	"github.com/genofire/logmania/notify"
 	configNotify "github.com/genofire/logmania/notify/config"
 )
@@ -36,17 +37,29 @@ func Init(config *lib.NotifyConfig, state *configNotify.NotifyState, bot *bot.Bo
 func (n *Notifier) sender() {
 	for c := range n.channelNotify {
 		for _, item := range n.list {
-			item.Send(c)
+			item.Fire(c)
 		}
 	}
 }
 
-func (n *Notifier) Send(e *log.Entry) {
+func (n *Notifier) Fire(e *log.Entry) error {
 	n.channelNotify <- e
+	return nil
 }
 
 func (n *Notifier) Close() {
 	for _, item := range n.list {
 		item.Close()
+	}
+}
+
+func (n *Notifier) Levels() []log.Level {
+	return []log.Level{
+		log.DebugLevel,
+		log.InfoLevel,
+		log.WarnLevel,
+		log.ErrorLevel,
+		log.FatalLevel,
+		log.PanicLevel,
 	}
 }

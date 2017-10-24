@@ -2,7 +2,7 @@ package receive
 
 import (
 	"github.com/genofire/logmania/lib"
-	"github.com/genofire/logmania/log"
+	log "github.com/sirupsen/logrus"
 )
 
 var Register = make(map[string]ReceiverInit)

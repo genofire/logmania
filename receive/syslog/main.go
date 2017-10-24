@@ -3,10 +3,13 @@ package syslog
 import (
 	"net"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/genofire/logmania/lib"
-	"github.com/genofire/logmania/log"
 	"github.com/genofire/logmania/receive"
 )
+
+var logger = log.WithField("receive", "syslog")
 
 type Receiver struct {
 	receive.Receiver
@@ -19,7 +22,7 @@ func Init(config *lib.ReceiveConfig, exportChannel chan *log.Entry) receive.Rece
 	ln, err := net.ListenUDP(config.Syslog.Type, addr)
 
 	if err != nil {
-		log.Error("syslog init ", err)
+		logger.Error("init ", err)
 		return nil
 	}
 	recv := &Receiver{
@@ -27,7 +30,7 @@ func Init(config *lib.ReceiveConfig, exportChannel chan *log.Entry) receive.Rece
 		exportChannel: exportChannel,
 	}
 
-	log.Info("syslog init")
+	logger.Info("init")
 
 	return recv
 }
@@ -35,18 +38,21 @@ func Init(config *lib.ReceiveConfig, exportChannel chan *log.Entry) receive.Rece
 const maxDataGramSize = 8192
 
 func (rc *Receiver) Listen() {
-	log.Info("syslog listen")
+	logger.Info("listen")
 	for {
 		buf := make([]byte, maxDataGramSize)
 		n, src, err := rc.serverSocket.ReadFromUDP(buf)
 		if err != nil {
-			log.Warn("failed to accept connection", err)
+			logger.Warn("failed to accept connection", err)
 			continue
 		}
 
 		raw := make([]byte, n)
 		copy(raw, buf)
-		rc.exportChannel <- toLogEntry(raw, src.IP.String())
+		entry := toLogEntry(raw, src.IP.String())
+		if entry != nil {
+			rc.exportChannel <- entry
+		}
 	}
 }
 

@@ -1,8 +1,9 @@
 package all
 
 import (
+	log "github.com/sirupsen/logrus"
+
 	"github.com/genofire/logmania/lib"
-	"github.com/genofire/logmania/log"
 	"github.com/genofire/logmania/receive"
 )
 

@@ -2,12 +2,11 @@ package config
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"regexp"
 	"time"
 
-	"github.com/genofire/logmania/log"
+	log "github.com/sirupsen/logrus"
 )
 
 const AlertMsg = "alert service from logmania, device did not send new message for a while"
@@ -15,26 +14,30 @@ const AlertMsg = "alert service from logmania, device did not send new message f
 type NotifyState struct {
 	Hostname       map[string]string                    `json:"hostname"`
 	HostTo         map[string]map[string]bool           `json:"host_to"`
-	MaxPrioIn      map[string]log.LogLevel              `json:"maxLevel"`
+	MaxPrioIn      map[string]log.Level                 `json:"maxLevel"`
 	RegexIn        map[string]map[string]*regexp.Regexp `json:"regexIn"`
 	Lastseen       map[string]time.Time                 `json:"lastseen,omitempty"`
 	LastseenNotify map[string]time.Time                 `json:"-"`
 }
 
 func (state *NotifyState) SendTo(e *log.Entry) []string {
-	if to, ok := state.HostTo[e.Hostname]; ok {
-		if e.Text != AlertMsg && e.Hostname != "" {
-			state.Lastseen[e.Hostname] = time.Now()
+	hostname, ok := e.Data["hostname"].(string)
+	if !ok {
+		return nil
+	}
+	if to, ok := state.HostTo[hostname]; ok {
+		if e.Message != AlertMsg && hostname != "" {
+			state.Lastseen[hostname] = time.Now()
 		}
 		var toList []string
 		for toEntry, _ := range to {
-			if lvl := state.MaxPrioIn[toEntry]; e.Level < lvl {
+			if lvl := state.MaxPrioIn[toEntry]; e.Level >= lvl {
 				continue
 			}
 			if regex, ok := state.RegexIn[toEntry]; ok {
 				stopForTo := false
 				for _, expr := range regex {
-					if expr.MatchString(e.Text) {
+					if expr.MatchString(e.Message) {
 						stopForTo = true
 						continue
 					}
@@ -45,12 +48,12 @@ func (state *NotifyState) SendTo(e *log.Entry) []string {
 			}
 			toList = append(toList, toEntry)
 		}
-		if hostname, ok := state.Hostname[e.Hostname]; ok {
-			e.Hostname = hostname
+		if replaceHostname, ok := state.Hostname[hostname]; ok {
+			e.WithField("hostname", replaceHostname)
 		}
 		return toList
 	} else {
-		state.HostTo[e.Hostname] = make(map[string]bool)
+		state.HostTo[hostname] = make(map[string]bool)
 	}
 	return nil
 }
@@ -71,7 +74,7 @@ func ReadStateFile(path string) *NotifyState {
 	var state NotifyState
 	if f, err := os.Open(path); err == nil { // transform data to legacy meshviewer
 		if err = json.NewDecoder(f).Decode(&state); err == nil {
-			fmt.Println("loaded", len(state.HostTo), "hosts")
+			log.Infof("loaded %d hosts", len(state.HostTo))
 			if state.Lastseen == nil {
 				state.Lastseen = make(map[string]time.Time)
 			}
@@ -89,15 +92,15 @@ func ReadStateFile(path string) *NotifyState {
 			}
 			return &state
 		} else {
-			fmt.Println("failed to unmarshal nodes:", err)
+			log.Error("failed to unmarshal nodes:", err)
 		}
 	} else {
-		fmt.Println("failed to open state notify file: ", path, ":", err)
+		log.Error("failed to open state notify file: ", path, ":", err)
 	}
 	return &NotifyState{
 		Hostname:       make(map[string]string),
 		HostTo:         make(map[string]map[string]bool),
-		MaxPrioIn:      make(map[string]log.LogLevel),
+		MaxPrioIn:      make(map[string]log.Level),
 		RegexIn:        make(map[string]map[string]*regexp.Regexp),
 		Lastseen:       make(map[string]time.Time),
 		LastseenNotify: make(map[string]time.Time),
@@ -112,7 +115,7 @@ func (state *NotifyState) Saver(path string) {
 	}
 }
 
-func (state *NotifyState) Alert(expired time.Duration, send func(e *log.Entry)) {
+func (state *NotifyState) Alert(expired time.Duration, send func(e *log.Entry) error) {
 	c := time.Tick(time.Minute)
 
 	for range c {
@@ -121,11 +124,11 @@ func (state *NotifyState) Alert(expired time.Duration, send func(e *log.Entry)) 
 			if time.Before(now.Add(expired * -2)) {
 				if timeNotify, ok := state.LastseenNotify[host]; !ok || !time.Before(timeNotify) {
 					state.LastseenNotify[host] = now
-					send(&log.Entry{
-						Hostname: host,
-						Level:    log.ErrorLevel,
-						Text:     AlertMsg,
-					})
+					entry := log.NewEntry(log.New())
+					entry.Level = log.ErrorLevel
+					entry.Message = AlertMsg
+					entry.WithField("hostname", host)
+					send(entry)
 				}
 			}
 		}

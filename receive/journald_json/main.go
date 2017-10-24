@@ -3,10 +3,13 @@ package journald_json
 import (
 	"net"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/genofire/logmania/lib"
-	"github.com/genofire/logmania/log"
 	"github.com/genofire/logmania/receive"
 )
+
+var logger = log.WithField("receive", "journald_json")
 
 type Receiver struct {
 	receive.Receiver
@@ -19,7 +22,7 @@ func Init(config *lib.ReceiveConfig, exportChannel chan *log.Entry) receive.Rece
 	ln, err := net.ListenUDP(config.JournaldJSON.Type, addr)
 
 	if err != nil {
-		log.Error("journald-json init ", err)
+		logger.Error("init ", err)
 		return nil
 	}
 	recv := &Receiver{
@@ -27,7 +30,7 @@ func Init(config *lib.ReceiveConfig, exportChannel chan *log.Entry) receive.Rece
 		exportChannel: exportChannel,
 	}
 
-	log.Info("journald-json init")
+	logger.Info("init")
 
 	return recv
 }
@@ -35,12 +38,12 @@ func Init(config *lib.ReceiveConfig, exportChannel chan *log.Entry) receive.Rece
 const maxDataGramSize = 8192
 
 func (rc *Receiver) Listen() {
-	log.Info("journald-json listen")
+	logger.Info("listen")
 	for {
 		buf := make([]byte, maxDataGramSize)
 		n, src, err := rc.serverSocket.ReadFromUDP(buf)
 		if err != nil {
-			log.Warn("failed to accept connection", err)
+			logger.Warn("failed to accept connection", err)
 			continue
 		}
 
