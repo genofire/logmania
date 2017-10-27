@@ -1,11 +1,10 @@
 package config
 
 import (
-	"encoding/json"
-	"os"
 	"regexp"
 	"time"
 
+	"github.com/genofire/golang-lib/file"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -72,28 +71,25 @@ func (state *NotifyState) AddRegex(to, expression string) error {
 
 func ReadStateFile(path string) *NotifyState {
 	var state NotifyState
-	if f, err := os.Open(path); err == nil { // transform data to legacy meshviewer
-		if err = json.NewDecoder(f).Decode(&state); err == nil {
-			log.Infof("loaded %d hosts", len(state.HostTo))
-			if state.Lastseen == nil {
-				state.Lastseen = make(map[string]time.Time)
-			}
-			if state.LastseenNotify == nil {
-				state.LastseenNotify = make(map[string]time.Time)
-			}
-			if state.RegexIn == nil {
-				state.RegexIn = make(map[string]map[string]*regexp.Regexp)
-			} else {
-				for to, regexs := range state.RegexIn {
-					for exp, _ := range regexs {
-						state.AddRegex(to, exp)
-					}
+
+	if err := file.ReadJSON(path, &state); err == nil {
+		log.Infof("loaded %d hosts", len(state.HostTo))
+		if state.Lastseen == nil {
+			state.Lastseen = make(map[string]time.Time)
+		}
+		if state.LastseenNotify == nil {
+			state.LastseenNotify = make(map[string]time.Time)
+		}
+		if state.RegexIn == nil {
+			state.RegexIn = make(map[string]map[string]*regexp.Regexp)
+		} else {
+			for to, regexs := range state.RegexIn {
+				for exp, _ := range regexs {
+					state.AddRegex(to, exp)
 				}
 			}
-			return &state
-		} else {
-			log.Error("failed to unmarshal nodes:", err)
 		}
+		return &state
 	} else {
 		log.Error("failed to open state notify file: ", path, ":", err)
 	}
@@ -104,14 +100,6 @@ func ReadStateFile(path string) *NotifyState {
 		RegexIn:        make(map[string]map[string]*regexp.Regexp),
 		Lastseen:       make(map[string]time.Time),
 		LastseenNotify: make(map[string]time.Time),
-	}
-}
-
-func (state *NotifyState) Saver(path string) {
-	c := time.Tick(time.Minute)
-
-	for range c {
-		state.SaveJSON(path)
 	}
 }
 
@@ -132,25 +120,5 @@ func (state *NotifyState) Alert(expired time.Duration, send func(e *log.Entry) e
 				}
 			}
 		}
-	}
-}
-
-// SaveJSON to path
-func (state *NotifyState) SaveJSON(outputFile string) {
-	tmpFile := outputFile + ".tmp"
-
-	f, err := os.OpenFile(tmpFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-	if err != nil {
-		log.Panic(err)
-	}
-
-	err = json.NewEncoder(f).Encode(state)
-	if err != nil {
-		log.Panic(err)
-	}
-
-	f.Close()
-	if err := os.Rename(tmpFile, outputFile); err != nil {
-		log.Panic(err)
 	}
 }

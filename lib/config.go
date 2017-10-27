@@ -1,13 +1,5 @@
 package lib
 
-import (
-	"io/ioutil"
-
-	"github.com/BurntSushi/toml"
-
-	log "github.com/sirupsen/logrus"
-)
-
 // Struct of the configuration
 // e.g. under github.com/genofire/logmania/logmania_example.conf
 type Config struct {
@@ -43,16 +35,4 @@ type ReceiveConfig struct {
 		Type    string `toml:"type"`
 		Address string `toml:"address"`
 	} `toml:"journald_json"`
-}
-
-// read configuration from a file (use toml as file-format)
-func ReadConfig(path string) (*Config, error) {
-	log.Infof("load of configfile: %s", path)
-	var config Config
-	file, _ := ioutil.ReadFile(path)
-	err := toml.Unmarshal(file, &config)
-	if err != nil {
-		return nil, err
-	}
-	return &config, nil
 }

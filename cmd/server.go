@@ -9,6 +9,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
+	"github.com/genofire/golang-lib/file"
+	"github.com/genofire/golang-lib/worker"
 	"github.com/genofire/logmania/bot"
 	"github.com/genofire/logmania/lib"
 	"github.com/genofire/logmania/notify"
@@ -19,13 +21,14 @@ import (
 )
 
 var (
-	configPath  string
-	config      *lib.Config
-	notifyState *configNotify.NotifyState
-	notifier    notify.Notifier
-	receiver    receive.Receiver
-	logChannel  chan *log.Entry
-	logmaniaBot *bot.Bot
+	configPath      string
+	config          *lib.Config
+	notifyState     *configNotify.NotifyState
+	stateSaveWorker *worker.Worker
+	notifier        notify.Notifier
+	receiver        receive.Receiver
+	logChannel      chan *log.Entry
+	logmaniaBot     *bot.Bot
 )
 
 // serverCmd represents the serve command
@@ -37,13 +40,14 @@ var serverCmd = &cobra.Command{
 		log.SetFormatter(&log.TextFormatter{
 			DisableTimestamp: true,
 		})
-		config, err := lib.ReadConfig(configPath)
+		config := &lib.Config{}
+		err := file.ReadTOML(configPath, config)
 		if config == nil || err != nil {
 			log.Panicf("Could not load '%s' for configuration.", configPath)
 		}
 
-		notifyState := configNotify.ReadStateFile(config.Notify.StateFile)
-		go notifyState.Saver(config.Notify.StateFile)
+		notifyState = configNotify.ReadStateFile(config.Notify.StateFile)
+		stateSaveWorker = file.NewSaveJSONWorker(time.Minute, config.Notify.StateFile, notifyState)
 
 		logmaniaBot = bot.NewBot(notifyState)
 
@@ -87,6 +91,8 @@ var serverCmd = &cobra.Command{
 }
 
 func quit() {
+	stateSaveWorker.Close()
+	file.SaveJSON(config.Notify.StateFile, notifyState)
 	receiver.Close()
 	notifier.Close()
 	log.Info("quit of logmania")
@@ -95,8 +101,9 @@ func quit() {
 
 func reload() {
 	log.Info("reload config file")
-	config, err := lib.ReadConfig(configPath)
-	if config == nil || err != nil {
+	var config lib.Config
+	err := file.ReadTOML(configPath, &config)
+	if err != nil {
 		log.Errorf("reload: could not load '%s' for new configuration. Skip reload.", configPath)
 		return
 	}
