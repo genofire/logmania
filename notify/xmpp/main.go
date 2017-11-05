@@ -64,7 +64,7 @@ func Init(config *lib.NotifyConfig, state *configNotify.NotifyState, bot *bot.Bo
 }
 
 func (n *Notifier) Fire(e *log.Entry) error {
-	to := n.state.SendTo(e)
+	e, to := n.state.SendTo(e)
 	if to == nil {
 		return errors.New("no reciever found")
 	}

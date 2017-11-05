@@ -19,10 +19,10 @@ type NotifyState struct {
 	LastseenNotify map[string]time.Time                 `json:"-"`
 }
 
-func (state *NotifyState) SendTo(e *log.Entry) []string {
+func (state *NotifyState) SendTo(e *log.Entry) (*log.Entry, []string) {
 	hostname, ok := e.Data["hostname"].(string)
 	if !ok {
-		return nil
+		return e, nil
 	}
 	if to, ok := state.HostTo[hostname]; ok {
 		if e.Message != AlertMsg && hostname != "" {
@@ -48,13 +48,16 @@ func (state *NotifyState) SendTo(e *log.Entry) []string {
 			toList = append(toList, toEntry)
 		}
 		if replaceHostname, ok := state.Hostname[hostname]; ok {
-			e.WithField("hostname", replaceHostname)
+			entry := e.WithField("hostname", replaceHostname)
+			entry.Level = e.Level
+			entry.Message = e.Message
+			return entry, toList
 		}
-		return toList
+		return e, toList
 	} else {
 		state.HostTo[hostname] = make(map[string]bool)
 	}
-	return nil
+	return e, nil
 }
 
 func (state *NotifyState) AddRegex(to, expression string) error {
