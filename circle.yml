@@ -1,36 +1,55 @@
-machine:
-  environment:
-    GOROOT: ""
-    PATH: "/usr/local/go/bin:/usr/local/go_workspace/bin:~/.go_workspace/bin:${PATH}"
-    GOPATH: "${HOME}/.go_workspace"
-
-dependencies:
-  override:
-    - mkdir -p ~/.go_workspace/src/github.com/${CIRCLE_PROJECT_USERNAME}
-    - ln -s ${HOME}/${CIRCLE_PROJECT_REPONAME} ${HOME}/.go_workspace/src/github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}
-    - go get -t -d -v ./...
-    - go install github.com/genofire/logmania
-  post:
-    - cp ~/.go_workspace/bin/logmania logmania.bin
-    - tar -cvzf logmania-builded.tar.gz logmania.bin logmania_example.conf
-    - mv logmania-builded.tar.gz $CIRCLE_ARTIFACTS
-
-
-
-test:
-  pre:
-    - go get github.com/mattn/goveralls
-    - go get golang.org/x/tools/cmd/cover
-  override:
-    - ./.test-coverage circle-ci
-
-deployment:
-  staging:
-    branch: master
-    commands:
-      - ./deploy.sh $HOST_FOR_STAGING $PORT_FOR_STAGING
-
-notify:
-  webhooks:
-    - url: https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN
-    - url: https://hook2xmpp.pub.warehost.de/circleci
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/golang:latest
+    working_directory: /go/src/github.com/genofire/logmania
+    steps:
+      - checkout
+      - run: go get -t -d -v ./...
+      - run: go install github.com/genofire/logmania
+      - store_artifacts:
+          path: /go/bin/
+          destination: logmania
+  test:
+    docker:
+      - image: circleci/golang:latest
+    working_directory: /go/src/github.com/genofire/logmania
+    steps:
+      - checkout
+      - run: go get -t -d -v ./...
+      - run: go get github.com/mattn/goveralls
+      - run: go get golang.org/x/tools/cmd/cover
+      - run: ./.test-coverage circle-ci
+      - store_test_results:
+          path: ./
+          destination: profile.cov
+  test_race:
+    docker:
+      - image: circleci/golang:latest
+    working_directory: /go/src/github.com/genofire/logmania
+    steps:
+      - checkout
+      - run: go get -t -d -v ./...
+      - run: go test -race ./...
+  deploy:
+    docker:
+      - image: circleci/golang:latest
+    working_directory: /go/src/github.com/genofire/logmania
+    steps:
+      - checkout
+      - run: go get -t -d -v ./...
+      - run: go install github.com/genofire/logmania
+      - run: ./deploy.sh $HOST_FOR_STAGING $PORT_FOR_STAGING
+workflows:
+  version: 2
+  build_and_tests:
+    jobs:
+      - build
+      - test
+      - test_race
+      - deploy:
+          requires:
+            - build
+            - test
+            - test_race

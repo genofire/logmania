@@ -4,17 +4,17 @@ import (
 	"fmt"
 	"strings"
 
-	configNotify "github.com/genofire/logmania/notify/config"
+	"github.com/genofire/logmania/database"
 )
 
 type Bot struct {
-	state    *configNotify.NotifyState
+	db       *database.DB
 	commands map[string]commandFunc
 }
 
-func NewBot(state *configNotify.NotifyState) *Bot {
+func NewBot(db *database.DB) *Bot {
 	b := &Bot{
-		state: state,
+		db: db,
 	}
 	b.commands = map[string]commandFunc{
 		"help":          b.help,

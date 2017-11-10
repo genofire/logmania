@@ -32,10 +32,10 @@ func (b *Bot) sendTo(answer func(string), from string, params []string) {
 		to = params[1]
 	}
 
-	if _, ok := b.state.HostTo[host]; !ok {
-		b.state.HostTo[host] = make(map[string]bool)
+	if _, ok := b.db.HostTo[host]; !ok {
+		b.db.HostTo[host] = make(map[string]bool)
 	}
-	b.state.HostTo[host][to] = true
+	b.db.HostTo[host][to] = true
 
 	answer(fmt.Sprintf("added %s in list of %s", to, host))
 }
@@ -52,9 +52,9 @@ func (b *Bot) sendRemove(answer func(string), from string, params []string) {
 		to = params[1]
 	}
 
-	if list, ok := b.state.HostTo[host]; ok {
+	if list, ok := b.db.HostTo[host]; ok {
 		delete(list, to)
-		b.state.HostTo[host] = list
+		b.db.HostTo[host] = list
 		answer(fmt.Sprintf("removed %s in list of %s", to, host))
 	} else {
 		answer("not found host")
@@ -74,7 +74,7 @@ func (b *Bot) sendList(answer func(string), from string, params []string) {
 			of = params[0]
 		}
 	}
-	for ip, toMap := range b.state.HostTo {
+	for ip, toMap := range b.db.HostTo {
 		toList := ""
 		show := all
 		for to := range toMap {
@@ -90,7 +90,7 @@ func (b *Bot) sendList(answer func(string), from string, params []string) {
 		if len(toList) > 3 {
 			toList = toList[3:]
 		}
-		if hostname, ok := b.state.Hostname[ip]; ok {
+		if hostname, ok := b.db.Hostname[ip]; ok {
 			msg = fmt.Sprintf("%s%s (%s): %s\n", msg, ip, hostname, toList)
 		} else {
 			msg = fmt.Sprintf("%s%s: %s\n", msg, ip, toList)
@@ -103,8 +103,8 @@ func (b *Bot) sendList(answer func(string), from string, params []string) {
 // list all host with his ip
 func (b *Bot) listHostname(answer func(string), from string, params []string) {
 	msg := "hostnames:\n"
-	for ip, hostname := range b.state.Hostname {
-		if last, ok := b.state.Lastseen[ip]; ok {
+	for ip, hostname := range b.db.Hostname {
+		if last, ok := b.db.Lastseen[ip]; ok {
 			got, _ := timeago.TimeAgoWithTime(time.Now(), last)
 			msg = fmt.Sprintf("%s%s - %s (%s)\n", msg, ip, hostname, got)
 		} else {
@@ -123,7 +123,7 @@ func (b *Bot) setHostname(answer func(string), from string, params []string) {
 	host := params[0]
 	name := params[1]
 
-	b.state.Hostname[host] = name
+	b.db.Hostname[host] = name
 
 	answer(fmt.Sprintf("set for %s the hostname %s", host, name))
 }
@@ -133,7 +133,7 @@ func (b *Bot) listMaxfilter(answer func(string), from string, params []string) {
 	msg := "filters: "
 	if len(params) > 0 && params[0] == "all" {
 		msg = fmt.Sprintf("%s\n", msg)
-		for to, filter := range b.state.MaxPrioIn {
+		for to, filter := range b.db.MaxPrioIn {
 			msg = fmt.Sprintf("%s%s - %s\n", msg, to, filter.String())
 		}
 	} else {
@@ -141,7 +141,7 @@ func (b *Bot) listMaxfilter(answer func(string), from string, params []string) {
 		if len(params) > 0 {
 			of = params[0]
 		}
-		if filter, ok := b.state.MaxPrioIn[of]; ok {
+		if filter, ok := b.db.MaxPrioIn[of]; ok {
 			msg = fmt.Sprintf("%s of %s is %s", msg, of, filter)
 		}
 	}
@@ -169,7 +169,7 @@ func (b *Bot) setMaxfilter(answer func(string), from string, params []string) {
 		return
 	}
 
-	b.state.MaxPrioIn[to] = max
+	b.db.MaxPrioIn[to] = max
 
 	answer(fmt.Sprintf("set filter for %s to %s", to, max.String()))
 }
@@ -178,7 +178,7 @@ func (b *Bot) setMaxfilter(answer func(string), from string, params []string) {
 func (b *Bot) listRegex(answer func(string), from string, params []string) {
 	msg := "regexs:\n"
 	if len(params) > 0 && params[0] == "all" {
-		for to, regexs := range b.state.RegexIn {
+		for to, regexs := range b.db.RegexIn {
 			msg = fmt.Sprintf("%s%s\n-------------\n", msg, to)
 			for expression := range regexs {
 				msg = fmt.Sprintf("%s - %s\n", msg, expression)
@@ -189,7 +189,7 @@ func (b *Bot) listRegex(answer func(string), from string, params []string) {
 		if len(params) > 0 {
 			of = params[0]
 		}
-		if regexs, ok := b.state.RegexIn[of]; ok {
+		if regexs, ok := b.db.RegexIn[of]; ok {
 			msg = fmt.Sprintf("%s%s\n-------------\n", msg, from)
 			for expression := range regexs {
 				msg = fmt.Sprintf("%s - %s\n", msg, expression)
@@ -207,7 +207,7 @@ func (b *Bot) addRegex(answer func(string), from string, params []string) {
 	}
 	regex := strings.Join(params, " ")
 
-	if err := b.state.AddRegex(from, regex); err == nil {
+	if err := b.db.AddRegex(from, regex); err == nil {
 		answer(fmt.Sprintf("add regex for \"%s\" to %s", from, regex))
 	} else {
 		answer(fmt.Sprintf("\"%s\" is no valid regex expression: %s", regex, err))
@@ -221,6 +221,6 @@ func (b *Bot) delRegex(answer func(string), from string, params []string) {
 		return
 	}
 	regex := strings.Join(params, " ")
-	delete(b.state.RegexIn[from], regex)
+	delete(b.db.RegexIn[from], regex)
 	b.listRegex(answer, from, []string{})
 }

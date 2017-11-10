@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -12,23 +13,23 @@ import (
 	"github.com/genofire/golang-lib/file"
 	"github.com/genofire/golang-lib/worker"
 	"github.com/genofire/logmania/bot"
+	"github.com/genofire/logmania/database"
 	"github.com/genofire/logmania/lib"
 	"github.com/genofire/logmania/notify"
 	allNotify "github.com/genofire/logmania/notify/all"
-	configNotify "github.com/genofire/logmania/notify/config"
 	"github.com/genofire/logmania/receive"
 	allReceiver "github.com/genofire/logmania/receive/all"
 )
 
 var (
-	configPath      string
-	config          *lib.Config
-	notifyState     *configNotify.NotifyState
-	stateSaveWorker *worker.Worker
-	notifier        notify.Notifier
-	receiver        receive.Receiver
-	logChannel      chan *log.Entry
-	logmaniaBot     *bot.Bot
+	configPath   string
+	config       *lib.Config
+	db           *database.DB
+	dbSaveWorker *worker.Worker
+	notifier     notify.Notifier
+	receiver     receive.Receiver
+	logChannel   chan *log.Entry
+	logmaniaBot  *bot.Bot
 )
 
 // serverCmd represents the serve command
@@ -46,23 +47,22 @@ var serverCmd = &cobra.Command{
 			log.Panicf("Could not load '%s' for configuration.", configPath)
 		}
 
-		notifyState = configNotify.ReadStateFile(config.Notify.StateFile)
-		stateSaveWorker = file.NewSaveJSONWorker(time.Minute, config.Notify.StateFile, notifyState)
+		db = database.ReadDBFile(config.DB)
+		dbSaveWorker = file.NewSaveJSONWorker(time.Minute, config.DB, db)
 
-		logmaniaBot = bot.NewBot(notifyState)
+		logmaniaBot = bot.NewBot(db)
 
-		notifier = allNotify.Init(&config.Notify, notifyState, logmaniaBot)
-		log.AddHook(notifier)
+		notifier = allNotify.Init(&config.Notify, db, logmaniaBot)
 		logChannel = make(chan *log.Entry)
 
 		go func() {
 			for a := range logChannel {
-				notifier.Fire(a)
+				notifier.Send(a)
 			}
 		}()
 
 		if config.Notify.AlertCheck.Duration > time.Duration(time.Second) {
-			go notifyState.Alert(config.Notify.AlertCheck.Duration, notifier.Fire)
+			go db.Alert(config.Notify.AlertCheck.Duration, notifier.Send)
 		}
 
 		log.Info("starting logmania")
@@ -70,6 +70,16 @@ var serverCmd = &cobra.Command{
 		receiver = allReceiver.Init(&config.Receive, logChannel)
 
 		go receiver.Listen()
+
+		srv := &http.Server{
+			Addr: config.HTTPAddress,
+		}
+
+		go func() {
+			if err := srv.ListenAndServe(); err != nil {
+				panic(err)
+			}
+		}()
 
 		// Wait for system signal
 		sigchan := make(chan os.Signal, 1)
@@ -91,8 +101,8 @@ var serverCmd = &cobra.Command{
 }
 
 func quit() {
-	stateSaveWorker.Close()
-	file.SaveJSON(config.Notify.StateFile, notifyState)
+	dbSaveWorker.Close()
+	file.SaveJSON(config.DB, db)
 	receiver.Close()
 	notifier.Close()
 	log.Info("quit of logmania")
@@ -112,7 +122,7 @@ func reload() {
 	go receiver.Listen()
 
 	notifier.Close()
-	notifier = allNotify.Init(&config.Notify, notifyState, logmaniaBot)
+	notifier = allNotify.Init(&config.Notify, db, logmaniaBot)
 }
 
 func init() {

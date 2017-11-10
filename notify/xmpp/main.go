@@ -3,27 +3,35 @@ package xmpp
 import (
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 
 	xmpp "github.com/mattn/go-xmpp"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/genofire/logmania/bot"
+	"github.com/genofire/logmania/database"
 	"github.com/genofire/logmania/lib"
 	"github.com/genofire/logmania/notify"
-	configNotify "github.com/genofire/logmania/notify/config"
 )
 
-var logger = log.WithField("notify", "xmpp")
+const (
+	proto      = "xmpp:"
+	protoGroup = "xmpp-muc:"
+	nickname   = "logmania"
+)
+
+var logger = log.WithField("notify", proto)
 
 type Notifier struct {
 	notify.Notifier
 	client    *xmpp.Client
-	state     *configNotify.NotifyState
+	channels  map[string]bool
+	db        *database.DB
 	formatter *log.TextFormatter
 }
 
-func Init(config *lib.NotifyConfig, state *configNotify.NotifyState, bot *bot.Bot) notify.Notifier {
+func Init(config *lib.NotifyConfig, db *database.DB, bot *bot.Bot) notify.Notifier {
 	options := xmpp.Options{
 		Host:          config.XMPP.Host,
 		User:          config.XMPP.Username,
@@ -43,6 +51,14 @@ func Init(config *lib.NotifyConfig, state *configNotify.NotifyState, bot *bot.Bo
 		for {
 			chat, err := client.Recv()
 			if err != nil {
+				if err == io.EOF {
+					client, err = options.NewClient()
+					log.Warn("reconnect")
+					if err != nil {
+						log.Panic(err)
+					}
+					continue
+				}
 				logger.Warn(err)
 			}
 			switch v := chat.(type) {
@@ -53,18 +69,24 @@ func Init(config *lib.NotifyConfig, state *configNotify.NotifyState, bot *bot.Bo
 			}
 		}
 	}()
+	for _, toAddresses := range db.HostTo {
+		for to, _ := range toAddresses {
+			toAddr := strings.TrimPrefix(to, protoGroup)
+			client.JoinMUCNoHistory(toAddr, nickname)
+		}
+	}
 	logger.Info("startup")
 	return &Notifier{
 		client: client,
-		state:  state,
+		db:     db,
 		formatter: &log.TextFormatter{
 			DisableTimestamp: true,
 		},
 	}
 }
 
-func (n *Notifier) Fire(e *log.Entry) error {
-	e, to := n.state.SendTo(e)
+func (n *Notifier) Send(e *log.Entry) error {
+	e, to := n.db.SendTo(e)
 	if to == nil {
 		return errors.New("no reciever found")
 	}
@@ -73,15 +95,18 @@ func (n *Notifier) Fire(e *log.Entry) error {
 		return err
 	}
 	for _, toAddr := range to {
-		to := strings.TrimPrefix(toAddr, "xmpp:")
-		if strings.Contains(toAddr, "conference") || strings.Contains(toAddr, "irc") {
-			n.client.JoinMUCNoHistory(to, "logmania")
-			_, err = n.client.SendHtml(xmpp.Chat{Remote: to, Type: "groupchat", Text: string(text)})
+		if strings.HasPrefix(toAddr, protoGroup) {
+			toAddr = strings.TrimPrefix(toAddr, protoGroup)
+			if _, ok := n.channels[toAddr]; ok {
+				n.client.JoinMUCNoHistory(toAddr, nickname)
+			}
+			_, err = n.client.SendHtml(xmpp.Chat{Remote: toAddr, Type: "groupchat", Text: string(text)})
 			if err != nil {
 				logger.Error("xmpp to ", to, " error:", err)
 			}
 		} else {
-			_, err := n.client.SendHtml(xmpp.Chat{Remote: to, Type: "chat", Text: string(text)})
+			toAddr = strings.TrimPrefix(toAddr, proto)
+			_, err := n.client.SendHtml(xmpp.Chat{Remote: toAddr, Type: "chat", Text: string(text)})
 			if err != nil {
 				logger.Error("xmpp to ", to, " error:", err)
 			}
@@ -90,18 +115,12 @@ func (n *Notifier) Fire(e *log.Entry) error {
 	return nil
 }
 
-func (n *Notifier) Levels() []log.Level {
-	return []log.Level{
-		log.DebugLevel,
-		log.InfoLevel,
-		log.WarnLevel,
-		log.ErrorLevel,
-		log.FatalLevel,
-		log.PanicLevel,
+func (n *Notifier) Close() {
+	for jid := range n.channels {
+		n.client.LeaveMUC(jid)
 	}
+	n.client.Close()
 }
-
-func (n *Notifier) Close() {}
 
 func init() {
 	notify.AddNotifier(Init)
