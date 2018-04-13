@@ -100,9 +100,13 @@ func Init(config *lib.NotifyConfig, db *database.DB, bot *bot.Bot) notify.Notifi
 				}
 
 				bot.Handle(func(answer string) {
+					to := msg.From
+					if msg.Type == xmpp.MessageTypeGroupchat && !to.IsBare() {
+						to = to.Bare()
+					}
 					err := client.Send(&xmpp.MessageClient{
 						Type: msg.Type,
-						To:   msg.From,
+						To:   to,
 						Body: answer,
 					})
 					if err != nil {
