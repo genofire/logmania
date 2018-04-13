@@ -1,7 +1,7 @@
 package receive
 
 import (
-	"github.com/genofire/logmania/lib"
+	"dev.sum7.eu/genofire/logmania/lib"
 	log "github.com/sirupsen/logrus"
 )
 

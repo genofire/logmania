@@ -3,11 +3,11 @@ package logrus
 import (
 	"net/http"
 
-	"github.com/genofire/golang-lib/websocket"
+	"dev.sum7.eu/genofire/golang-lib/websocket"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/genofire/logmania/lib"
-	"github.com/genofire/logmania/receive"
+	"dev.sum7.eu/genofire/logmania/lib"
+	"dev.sum7.eu/genofire/logmania/receive"
 )
 
 const WS_LOG_ENTRY = "log"

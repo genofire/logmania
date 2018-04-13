@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/genofire/golang-lib/file"
+	"dev.sum7.eu/genofire/golang-lib/file"
 	log "github.com/sirupsen/logrus"
 )
 

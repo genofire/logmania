@@ -5,8 +5,8 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/genofire/logmania/lib"
-	"github.com/genofire/logmania/receive"
+	"dev.sum7.eu/genofire/logmania/lib"
+	"dev.sum7.eu/genofire/logmania/receive"
 )
 
 var logger = log.WithField("receive", "syslog")

@@ -1,7 +1,7 @@
 package lib
 
 // Struct of the configuration
-// e.g. under github.com/genofire/logmania/logmania_example.conf
+// e.g. under dev.sum7.eu/genofire/logmania/logmania_example.conf
 type Config struct {
 	Notify      NotifyConfig  `toml:"notify"`
 	Receive     ReceiveConfig `toml:"receive"`
@@ -13,15 +13,8 @@ type NotifyConfig struct {
 	AlertCheck Duration `toml:"alert_check"`
 	Console    bool     `toml:"debug"`
 	XMPP       struct {
-		Host          string `toml:"host"`
-		Username      string `toml:"username"`
-		Password      string `toml:"password"`
-		Debug         bool   `toml:"debug"`
-		NoTLS         bool   `toml:"no_tls"`
-		Session       bool   `toml:"session"`
-		Status        string `toml:"status"`
-		StatusMessage string `toml:"status_message"`
-		StartupNotify string `toml:"startup_notify"`
+		JID      string `toml:"jid"`
+		Password string `toml:"password"`
 	} `toml:"xmpp"`
 }
 

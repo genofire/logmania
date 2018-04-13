@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/genofire/logmania/database"
+	"dev.sum7.eu/genofire/logmania/database"
 )
 
 type Bot struct {

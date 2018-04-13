@@ -1,5 +1,5 @@
 package all
 
 import (
-	_ "github.com/genofire/logmania/notify/xmpp"
+	_ "dev.sum7.eu/genofire/logmania/notify/xmpp"
 )

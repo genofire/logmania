@@ -2,17 +2,17 @@ package xmpp
 
 import (
 	"errors"
-	"fmt"
-	"io"
 	"strings"
 
-	xmpp "github.com/mattn/go-xmpp"
+	xmpp_client "dev.sum7.eu/genofire/yaja/client"
+	xmpp "dev.sum7.eu/genofire/yaja/xmpp"
+	"dev.sum7.eu/genofire/yaja/xmpp/base"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/genofire/logmania/bot"
-	"github.com/genofire/logmania/database"
-	"github.com/genofire/logmania/lib"
-	"github.com/genofire/logmania/notify"
+	"dev.sum7.eu/genofire/logmania/bot"
+	"dev.sum7.eu/genofire/logmania/database"
+	"dev.sum7.eu/genofire/logmania/lib"
+	"dev.sum7.eu/genofire/logmania/notify"
 )
 
 const (
@@ -25,60 +25,113 @@ var logger = log.WithField("notify", proto)
 
 type Notifier struct {
 	notify.Notifier
-	client    *xmpp.Client
+	client    *xmpp_client.Client
 	channels  map[string]bool
 	db        *database.DB
 	formatter *log.TextFormatter
 }
 
 func Init(config *lib.NotifyConfig, db *database.DB, bot *bot.Bot) notify.Notifier {
-	options := xmpp.Options{
-		Host:          config.XMPP.Host,
-		User:          config.XMPP.Username,
-		Password:      config.XMPP.Password,
-		NoTLS:         config.XMPP.NoTLS,
-		Debug:         config.XMPP.Debug,
-		Session:       config.XMPP.Session,
-		Status:        config.XMPP.Status,
-		StatusMessage: config.XMPP.StatusMessage,
-	}
-	client, err := options.NewClient()
+	channels := make(map[string]bool)
+
+	client, err := xmpp_client.NewClient(xmppbase.NewJID(config.XMPP.JID), config.XMPP.Password)
 	if err != nil {
 		logger.Error(err)
 		return nil
 	}
 	go func() {
 		for {
-			chat, err := client.Recv()
-			if err != nil {
-				if err == io.EOF {
-					client, err = options.NewClient()
-					log.Warn("reconnect")
-					if err != nil {
-						log.Panic(err)
-					}
-					continue
-				}
-				logger.Warn(err)
+			if err := client.Start(); err != nil {
+				log.Warn("close connection, try reconnect")
+				client.Connect(config.XMPP.Password)
+			} else {
+				log.Warn("closed connection")
+				return
 			}
-			switch v := chat.(type) {
-			case xmpp.Chat:
+		}
+	}()
+	go func() {
+		for {
+			element, more := client.Recv()
+			if !more {
+				log.Warn("could not recieve new message, try later")
+				continue
+			}
+
+			switch element.(type) {
+			case *xmpp.PresenceClient:
+				pres := element.(*xmpp.PresenceClient)
+				sender := pres.From
+				logPres := logger.WithField("from", sender.Full())
+				switch pres.Type {
+				case xmpp.PresenceTypeSubscribe:
+					logPres.Debugf("recv presence subscribe")
+					pres.Type = xmpp.PresenceTypeSubscribed
+					pres.To = sender
+					pres.From = nil
+					client.Send(pres)
+					logPres.Debugf("accept new subscribe")
+
+					pres.Type = xmpp.PresenceTypeSubscribe
+					pres.ID = ""
+					client.Send(pres)
+					logPres.Info("request also subscribe")
+				case xmpp.PresenceTypeSubscribed:
+					logPres.Info("recv presence accepted subscribe")
+				case xmpp.PresenceTypeUnsubscribe:
+					logPres.Info("recv presence remove subscribe")
+				case xmpp.PresenceTypeUnsubscribed:
+					logPres.Info("recv presence removed subscribe")
+				case xmpp.PresenceTypeUnavailable:
+					logPres.Debug("recv presence unavailable")
+				case "":
+					logPres.Debug("recv empty presence, maybe from joining muc")
+					continue
+				default:
+					logPres.Warnf("recv presence unsupported: %s -> %s", pres.Type, xmpp.XMLChildrenString(pres))
+				}
+			case *xmpp.MessageClient:
+				msg := element.(*xmpp.MessageClient)
+				from := msg.From.Bare().String()
+				if msg.Type == xmpp.MessageTypeGroupchat {
+					from = protoGroup + from
+				} else {
+					from = proto + from
+				}
+
 				bot.Handle(func(answer string) {
-					client.SendHtml(xmpp.Chat{Remote: v.Remote, Type: "chat", Text: answer})
-				}, fmt.Sprintf("xmpp:%s", strings.Split(v.Remote, "/")[0]), v.Text)
+					err := client.Send(&xmpp.MessageClient{
+						Type: msg.Type,
+						To:   msg.From,
+						Body: answer,
+					})
+					if err != nil {
+						logger.Error("xmpp to ", msg.From.String(), " error:", err)
+					}
+				}, from, msg.Body)
 			}
 		}
 	}()
 	for _, toAddresses := range db.HostTo {
 		for to, _ := range toAddresses {
 			toAddr := strings.TrimPrefix(to, protoGroup)
-			client.JoinMUCNoHistory(toAddr, nickname)
+			toJID := xmppbase.NewJID(toAddr)
+			toJID.Resource = nickname
+			err := client.Send(&xmpp.PresenceClient{
+				To: toJID,
+			})
+			if err != nil {
+				logger.Error("xmpp could not join ", toJID.String(), " error:", err)
+			} else {
+				channels[toAddr] = true
+			}
 		}
 	}
 	logger.Info("startup")
 	return &Notifier{
-		client: client,
-		db:     db,
+		channels: channels,
+		client:   client,
+		db:       db,
 		formatter: &log.TextFormatter{
 			DisableTimestamp: true,
 		},
@@ -98,15 +151,32 @@ func (n *Notifier) Send(e *log.Entry) error {
 		if strings.HasPrefix(toAddr, protoGroup) {
 			toAddr = strings.TrimPrefix(toAddr, protoGroup)
 			if _, ok := n.channels[toAddr]; ok {
-				n.client.JoinMUCNoHistory(toAddr, nickname)
+				toJID := xmppbase.NewJID(toAddr)
+				toJID.Resource = nickname
+				err := n.client.Send(&xmpp.PresenceClient{
+					To: toJID,
+				})
+				if err != nil {
+					logger.Error("xmpp could not join ", toJID.String(), " error:", err)
+				} else {
+					n.channels[toAddr] = true
+				}
 			}
-			_, err = n.client.SendHtml(xmpp.Chat{Remote: toAddr, Type: "groupchat", Text: string(text)})
+			err := n.client.Send(&xmpp.MessageClient{
+				Type: xmpp.MessageTypeGroupchat,
+				To:   xmppbase.NewJID(toAddr),
+				Body: string(text),
+			})
 			if err != nil {
-				logger.Error("xmpp to ", to, " error:", err)
+				logger.Error("xmpp to ", toAddr, " error:", err)
 			}
 		} else {
 			toAddr = strings.TrimPrefix(toAddr, proto)
-			_, err := n.client.SendHtml(xmpp.Chat{Remote: toAddr, Type: "chat", Text: string(text)})
+			err := n.client.Send(&xmpp.MessageClient{
+				Type: xmpp.MessageTypeChat,
+				To:   xmppbase.NewJID(toAddr),
+				Body: string(text),
+			})
 			if err != nil {
 				logger.Error("xmpp to ", to, " error:", err)
 			}
@@ -117,7 +187,15 @@ func (n *Notifier) Send(e *log.Entry) error {
 
 func (n *Notifier) Close() {
 	for jid := range n.channels {
-		n.client.LeaveMUC(jid)
+		toJID := xmppbase.NewJID(jid)
+		toJID.Resource = nickname
+		err := n.client.Send(&xmpp.PresenceClient{
+			To:   toJID,
+			Type: xmpp.PresenceTypeUnavailable,
+		})
+		if err != nil {
+			logger.Error("xmpp could not leave ", toJID.String(), " error:", err)
+		}
 	}
 	n.client.Close()
 }

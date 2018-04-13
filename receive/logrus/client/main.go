@@ -3,8 +3,8 @@ package client
 import (
 	"io"
 
-	websocketLib "github.com/genofire/golang-lib/websocket"
-	"github.com/genofire/logmania/receive/logrus"
+	websocketLib "dev.sum7.eu/genofire/golang-lib/websocket"
+	"dev.sum7.eu/genofire/logmania/receive/logrus"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"

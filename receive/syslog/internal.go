@@ -3,7 +3,7 @@ package syslog
 import (
 	log "github.com/sirupsen/logrus"
 
-	libSyslog "github.com/genofire/logmania/lib/syslog"
+	libSyslog "dev.sum7.eu/genofire/logmania/lib/syslog"
 )
 
 var SyslogPriorityMap = map[int]log.Level{

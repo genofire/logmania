@@ -1,6 +1,6 @@
 package main
 
-import "github.com/genofire/logmania/cmd"
+import "dev.sum7.eu/genofire/logmania/cmd"
 
 func main() {
 	cmd.Execute()

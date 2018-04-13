@@ -10,15 +10,15 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	"github.com/genofire/golang-lib/file"
-	"github.com/genofire/golang-lib/worker"
-	"github.com/genofire/logmania/bot"
-	"github.com/genofire/logmania/database"
-	"github.com/genofire/logmania/lib"
-	"github.com/genofire/logmania/notify"
-	allNotify "github.com/genofire/logmania/notify/all"
-	"github.com/genofire/logmania/receive"
-	allReceiver "github.com/genofire/logmania/receive/all"
+	"dev.sum7.eu/genofire/golang-lib/file"
+	"dev.sum7.eu/genofire/golang-lib/worker"
+	"dev.sum7.eu/genofire/logmania/bot"
+	"dev.sum7.eu/genofire/logmania/database"
+	"dev.sum7.eu/genofire/logmania/lib"
+	"dev.sum7.eu/genofire/logmania/notify"
+	allNotify "dev.sum7.eu/genofire/logmania/notify/all"
+	"dev.sum7.eu/genofire/logmania/receive"
+	allReceiver "dev.sum7.eu/genofire/logmania/receive/all"
 )
 
 var (
@@ -48,7 +48,7 @@ var serverCmd = &cobra.Command{
 		}
 
 		db = database.ReadDBFile(config.DB)
-		dbSaveWorker = file.NewSaveJSONWorker(time.Minute, config.DB, db)
+		go func(){ dbSaveWorker = file.NewSaveJSONWorker(time.Minute, config.DB, db) }()
 
 		logmaniaBot = bot.NewBot(db)
 
