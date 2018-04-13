@@ -16,6 +16,7 @@ type NotifyConfig struct {
 		JID      string `toml:"jid"`
 		Password string `toml:"password"`
 	} `toml:"xmpp"`
+	File string `toml:"file"`
 }
 
 type ReceiveConfig struct {

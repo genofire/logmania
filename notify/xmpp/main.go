@@ -28,7 +28,7 @@ type Notifier struct {
 	client    *xmpp_client.Client
 	channels  map[string]bool
 	db        *database.DB
-	formatter *log.TextFormatter
+	formatter log.Formatter
 }
 
 func Init(config *lib.NotifyConfig, db *database.DB, bot *bot.Bot) notify.Notifier {
