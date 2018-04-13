@@ -32,15 +32,6 @@ jobs:
       - checkout
       - run: go get -t -d -v ./...
       - run: go test -race ./...
-  deploy:
-    docker:
-      - image: circleci/golang:latest
-    working_directory: /go/src/dev.sum7.eu/genofire/logmania
-    steps:
-      - checkout
-      - run: go get -t -d -v ./...
-      - run: go install dev.sum7.eu/genofire/logmania
-      - run: ./deploy.sh $HOST_FOR_STAGING $PORT_FOR_STAGING
 workflows:
   version: 2
   build_and_tests:
@@ -48,8 +39,3 @@ workflows:
       - build
       - test
       - test_race
-      - deploy:
-          requires:
-            - build
-            - test
-            - test_race
