@@ -8,26 +8,31 @@ import (
 )
 
 type Bot struct {
-	db       *database.DB
-	commands map[string]commandFunc
+	db          *database.DB
+	commandsMap map[string]commandFunc
+	commands    []string
 }
 
 func NewBot(db *database.DB) *Bot {
 	b := &Bot{
 		db: db,
 	}
-	b.commands = map[string]commandFunc{
+	b.commandsMap = map[string]commandFunc{
 		"help":          b.help,
-		"send-to":       b.sendTo,
-		"send-list":     b.sendList,
-		"send-rm":       b.sendRemove,
-		"hostname-set":  b.setHostname,
+		"send-add":      b.addSend,
+		"send-list":     b.listSend,
+		"send-del":      b.delSend,
+		"hostname-set":  b.addHostname,
 		"hostname-list": b.listHostname,
+		"hostname-del":  b.delHostname,
 		"filter-set":    b.setMaxfilter,
 		"filter-list":   b.listMaxfilter,
 		"regex-add":     b.addRegex,
 		"regex-list":    b.listRegex,
-		"regex-rm":      b.delRegex,
+		"regex-del":     b.delRegex,
+	}
+	for k, _ := range b.commandsMap {
+		b.commands = append(b.commands, k)
 	}
 	return b
 }
@@ -38,7 +43,7 @@ func (b *Bot) Handle(answer func(string), from, msg string) {
 		return
 	}
 	cmdName := msgParts[0][1:]
-	if cmd, ok := b.commands[cmdName]; ok {
+	if cmd, ok := b.commandsMap[cmdName]; ok {
 		cmd(answer, from, msgParts[1:])
 	} else {
 		answer(fmt.Sprintf("not found command: !%s", cmdName))

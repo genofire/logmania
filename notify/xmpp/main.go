@@ -2,7 +2,6 @@ package xmpp
 
 import (
 	"errors"
-	"strings"
 
 	xmpp_client "dev.sum7.eu/genofire/yaja/client"
 	xmpp "dev.sum7.eu/genofire/yaja/xmpp"
@@ -16,8 +15,8 @@ import (
 )
 
 const (
-	proto      = "xmpp:"
-	protoGroup = "xmpp-muc:"
+	proto      = "xmpp"
+	protoGroup = "xmpp-muc"
 	nickname   = "logmania"
 )
 
@@ -94,9 +93,9 @@ func Init(config *lib.NotifyConfig, db *database.DB, bot *bot.Bot) notify.Notifi
 				msg := element.(*xmpp.MessageClient)
 				from := msg.From.Bare().String()
 				if msg.Type == xmpp.MessageTypeGroupchat {
-					from = protoGroup + from
+					from = protoGroup + ":" + from
 				} else {
-					from = proto + from
+					from = proto + ":" + from
 				}
 
 				bot.Handle(func(answer string) {
@@ -116,10 +115,9 @@ func Init(config *lib.NotifyConfig, db *database.DB, bot *bot.Bot) notify.Notifi
 			}
 		}
 	}()
-	for _, toAddresses := range db.HostTo {
-		for to, _ := range toAddresses {
-			toAddr := strings.TrimPrefix(to, protoGroup)
-			toJID := xmppbase.NewJID(toAddr)
+	for toAddr, toAddresses := range db.NotifiesByAddress {
+		if toAddresses.Protocoll == protoGroup {
+			toJID := xmppbase.NewJID(toAddresses.To)
 			toJID.Resource = nickname
 			err := client.Send(&xmpp.PresenceClient{
 				To: toJID,
@@ -143,19 +141,18 @@ func Init(config *lib.NotifyConfig, db *database.DB, bot *bot.Bot) notify.Notifi
 }
 
 func (n *Notifier) Send(e *log.Entry) error {
-	e, to := n.db.SendTo(e)
-	if to == nil {
+	e, _, tos := n.db.SendTo(e)
+	if tos == nil || len(tos) <= 0 {
 		return errors.New("no reciever found")
 	}
 	text, err := n.formatter.Format(e)
 	if err != nil {
 		return err
 	}
-	for _, toAddr := range to {
-		if strings.HasPrefix(toAddr, protoGroup) {
-			toAddr = strings.TrimPrefix(toAddr, protoGroup)
-			if _, ok := n.channels[toAddr]; ok {
-				toJID := xmppbase.NewJID(toAddr)
+	for _, to := range tos {
+		if to.Protocoll == protoGroup {
+			if _, ok := n.channels[to.To]; ok {
+				toJID := xmppbase.NewJID(to.To)
 				toJID.Resource = nickname
 				err := n.client.Send(&xmpp.PresenceClient{
 					To: toJID,
@@ -163,22 +160,21 @@ func (n *Notifier) Send(e *log.Entry) error {
 				if err != nil {
 					logger.Error("xmpp could not join ", toJID.String(), " error:", err)
 				} else {
-					n.channels[toAddr] = true
+					n.channels[to.To] = true
 				}
 			}
 			err := n.client.Send(&xmpp.MessageClient{
 				Type: xmpp.MessageTypeGroupchat,
-				To:   xmppbase.NewJID(toAddr),
+				To:   xmppbase.NewJID(to.To),
 				Body: string(text),
 			})
 			if err != nil {
-				logger.Error("xmpp to ", toAddr, " error:", err)
+				logger.Error("xmpp to ", to.To, " error:", err)
 			}
 		} else {
-			toAddr = strings.TrimPrefix(toAddr, proto)
 			err := n.client.Send(&xmpp.MessageClient{
 				Type: xmpp.MessageTypeChat,
-				To:   xmppbase.NewJID(toAddr),
+				To:   xmppbase.NewJID(to.To),
 				Body: string(text),
 			})
 			if err != nil {

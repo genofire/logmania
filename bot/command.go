@@ -3,7 +3,6 @@ package bot
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	timeago "github.com/ararog/timeago"
 	log "github.com/sirupsen/logrus"
@@ -14,16 +13,16 @@ type commandFunc func(func(string), string, []string)
 // list help
 func (b *Bot) help(answer func(string), from string, params []string) {
 	msg := fmt.Sprintf("Hi %s there are the following commands:\n", from)
-	for cmd := range b.commands {
+	for _, cmd := range b.commands {
 		msg = fmt.Sprintf("%s - !%s\n", msg, cmd)
 	}
 	answer(msg)
 }
 
 // add a chat to send log to a chat
-func (b *Bot) sendTo(answer func(string), from string, params []string) {
+func (b *Bot) addSend(answer func(string), from string, params []string) {
 	if len(params) < 1 {
-		answer("invalid: CMD IPAddress\n or\n CMD IPAddress to")
+		answer("invalid: CMD IPAddress/Hostname\n or\n CMD IPAddress/Hostname to")
 		return
 	}
 	host := params[0]
@@ -32,18 +31,23 @@ func (b *Bot) sendTo(answer func(string), from string, params []string) {
 		to = params[1]
 	}
 
-	if _, ok := b.db.HostTo[host]; !ok {
-		b.db.HostTo[host] = make(map[string]bool)
+	h := b.db.GetHost(host)
+	if h == nil {
+		h = b.db.NewHost(host)
 	}
-	b.db.HostTo[host][to] = true
+	n, ok := b.db.NotifiesByAddress[to]
+	if !ok {
+		n = b.db.NewNotify(to)
+	}
+	h.AddNotify(n)
 
 	answer(fmt.Sprintf("added %s in list of %s", to, host))
 }
 
 //add a chat to send log to a chat
-func (b *Bot) sendRemove(answer func(string), from string, params []string) {
+func (b *Bot) delSend(answer func(string), from string, params []string) {
 	if len(params) < 1 {
-		answer("invalid: CMD IPAddress\n or\n CMD IPAddress to")
+		answer("invalid: CMD IPAddress/Hostname\n or\n CMD IPAddress/Hostname to")
 		return
 	}
 	host := params[0]
@@ -52,9 +56,8 @@ func (b *Bot) sendRemove(answer func(string), from string, params []string) {
 		to = params[1]
 	}
 
-	if list, ok := b.db.HostTo[host]; ok {
-		delete(list, to)
-		b.db.HostTo[host] = list
+	if h := b.db.GetHost(host); h != nil {
+		h.DeleteNotify(to)
 		answer(fmt.Sprintf("removed %s in list of %s", to, host))
 	} else {
 		answer("not found host")
@@ -63,7 +66,7 @@ func (b *Bot) sendRemove(answer func(string), from string, params []string) {
 }
 
 // list all hostname with the chat where it send to
-func (b *Bot) sendList(answer func(string), from string, params []string) {
+func (b *Bot) listSend(answer func(string), from string, params []string) {
 	msg := "sending:\n"
 	all := false
 	of := from
@@ -74,10 +77,10 @@ func (b *Bot) sendList(answer func(string), from string, params []string) {
 			of = params[0]
 		}
 	}
-	for ip, toMap := range b.db.HostTo {
+	for _, host := range b.db.Hosts {
 		toList := ""
 		show := all
-		for to := range toMap {
+		for _, to := range host.Notifies {
 			if all {
 				toList = fmt.Sprintf("%s , %s", toList, to)
 			} else if to == of {
@@ -90,42 +93,65 @@ func (b *Bot) sendList(answer func(string), from string, params []string) {
 		if len(toList) > 3 {
 			toList = toList[3:]
 		}
-		if hostname, ok := b.db.Hostname[ip]; ok {
-			msg = fmt.Sprintf("%s%s (%s): %s\n", msg, ip, hostname, toList)
+		if host.Name != "" {
+			msg = fmt.Sprintf("%s%s (%s): %s\n", msg, host.Address, host.Name, toList)
 		} else {
-			msg = fmt.Sprintf("%s%s: %s\n", msg, ip, toList)
+			msg = fmt.Sprintf("%s%s: %s\n", msg, host.Address, toList)
 		}
 	}
 
 	answer(msg)
+}
+
+// add hostname
+func (b *Bot) addHostname(answer func(string), from string, params []string) {
+	if len(params) < 2 {
+		answer("invalid: CMD IPAddress/Hostname NewHostname")
+		return
+	}
+	addr := params[0]
+	name := params[1]
+
+	h := b.db.GetHost(addr)
+	if h == nil {
+		h = b.db.NewHost(addr)
+	}
+	b.db.ChangeHostname(h, name)
+
+	answer(fmt.Sprintf("set for %s the hostname %s", addr, name))
+}
+
+func (b *Bot) delHostname(answer func(string), from string, params []string) {
+	if len(params) < 2 {
+		answer("invalid: CMD IPAddress/Hostname")
+		return
+	}
+	addr := params[0]
+	h := b.db.GetHost(addr)
+	if h != nil {
+		b.db.DeleteHost(h)
+		if h.Name != "" {
+			answer(fmt.Sprintf("remove host %s with hostname %s", h.Address, h.Name))
+		} else {
+			answer(fmt.Sprintf("remove host %s", h.Address))
+		}
+	} else {
+		answer("could not found host")
+	}
 }
 
 // list all host with his ip
 func (b *Bot) listHostname(answer func(string), from string, params []string) {
 	msg := "hostnames:\n"
-	for ip, hostname := range b.db.Hostname {
-		if last, ok := b.db.Lastseen[ip]; ok {
-			got, _ := timeago.TimeAgoWithTime(time.Now(), last)
-			msg = fmt.Sprintf("%s%s - %s (%s)\n", msg, ip, hostname, got)
+	for _, host := range b.db.Hosts {
+		if host.Lastseen.Year() > 1 {
+			got, _ := timeago.TimeAgoFromNowWithTime(host.Lastseen)
+			msg = fmt.Sprintf("%s%s - %s (%s)\n", msg, host.Address, host.Name, got)
 		} else {
-			msg = fmt.Sprintf("%s%s - %s\n", msg, ip, hostname)
+			msg = fmt.Sprintf("%s%s - %s\n", msg, host.Address, host.Name)
 		}
 	}
 	answer(msg)
-}
-
-// list all hostname to a ip
-func (b *Bot) setHostname(answer func(string), from string, params []string) {
-	if len(params) < 2 {
-		answer("invalid: CMD IPAddress NewHostname")
-		return
-	}
-	host := params[0]
-	name := params[1]
-
-	b.db.Hostname[host] = name
-
-	answer(fmt.Sprintf("set for %s the hostname %s", host, name))
 }
 
 // set a filter by max
@@ -133,15 +159,15 @@ func (b *Bot) listMaxfilter(answer func(string), from string, params []string) {
 	msg := "filters: "
 	if len(params) > 0 && params[0] == "all" {
 		msg = fmt.Sprintf("%s\n", msg)
-		for to, filter := range b.db.MaxPrioIn {
-			msg = fmt.Sprintf("%s%s - %s\n", msg, to, filter.String())
+		for _, n := range b.db.Notifies {
+			msg = fmt.Sprintf("%s%s - %s\n", msg, n.Address(), n.MaxPrioIn.String())
 		}
 	} else {
 		of := from
 		if len(params) > 0 {
 			of = params[0]
 		}
-		if filter, ok := b.db.MaxPrioIn[of]; ok {
+		if filter, ok := b.db.NotifiesByAddress[of]; ok {
 			msg = fmt.Sprintf("%s of %s is %s", msg, of, filter)
 		}
 	}
@@ -151,7 +177,7 @@ func (b *Bot) listMaxfilter(answer func(string), from string, params []string) {
 // set a filter to a mix
 func (b *Bot) setMaxfilter(answer func(string), from string, params []string) {
 	if len(params) < 1 {
-		answer("invalid: CMD Priority\n or\n CMD IPAddress Priority")
+		answer("invalid: CMD Priority\n or\n CMD Channel Priority")
 		return
 	}
 	to := from
@@ -165,11 +191,15 @@ func (b *Bot) setMaxfilter(answer func(string), from string, params []string) {
 		max, err = log.ParseLevel(params[0])
 	}
 	if err != nil {
-		answer("invalid priority: CMD Priority\n or\n CMD IPAddress Priority")
+		answer("invalid priority: CMD Priority\n or\n CMD Channel Priority")
 		return
 	}
+	n, ok := b.db.NotifiesByAddress[to]
+	if !ok {
+		n = b.db.NewNotify(to)
+	}
 
-	b.db.MaxPrioIn[to] = max
+	n.MaxPrioIn = max
 
 	answer(fmt.Sprintf("set filter for %s to %s", to, max.String()))
 }
@@ -178,9 +208,9 @@ func (b *Bot) setMaxfilter(answer func(string), from string, params []string) {
 func (b *Bot) listRegex(answer func(string), from string, params []string) {
 	msg := "regexs:\n"
 	if len(params) > 0 && params[0] == "all" {
-		for to, regexs := range b.db.RegexIn {
-			msg = fmt.Sprintf("%s%s\n-------------\n", msg, to)
-			for expression := range regexs {
+		for _, n := range b.db.Notifies {
+			msg = fmt.Sprintf("%s%s\n-------------\n", msg, n.Address())
+			for expression := range n.RegexIn {
 				msg = fmt.Sprintf("%s - %s\n", msg, expression)
 			}
 		}
@@ -189,9 +219,9 @@ func (b *Bot) listRegex(answer func(string), from string, params []string) {
 		if len(params) > 0 {
 			of = params[0]
 		}
-		if regexs, ok := b.db.RegexIn[of]; ok {
-			msg = fmt.Sprintf("%s%s\n-------------\n", msg, from)
-			for expression := range regexs {
+		if n, ok := b.db.NotifiesByAddress[of]; ok {
+			msg = fmt.Sprintf("%s%s\n-------------\n", msg, of)
+			for expression := range n.RegexIn {
 				msg = fmt.Sprintf("%s - %s\n", msg, expression)
 			}
 		}
@@ -207,7 +237,8 @@ func (b *Bot) addRegex(answer func(string), from string, params []string) {
 	}
 	regex := strings.Join(params, " ")
 
-	if err := b.db.AddRegex(from, regex); err == nil {
+	n := b.db.NotifiesByAddress[from]
+	if err := n.AddRegex(regex); err == nil {
 		answer(fmt.Sprintf("add regex for \"%s\" to %s", from, regex))
 	} else {
 		answer(fmt.Sprintf("\"%s\" is no valid regex expression: %s", regex, err))
@@ -220,7 +251,8 @@ func (b *Bot) delRegex(answer func(string), from string, params []string) {
 		answer("invalid: CMD regex\n or\n CMD channel regex")
 		return
 	}
+	n := b.db.NotifiesByAddress[from]
 	regex := strings.Join(params, " ")
-	delete(b.db.RegexIn[from], regex)
+	delete(n.RegexIn, regex)
 	b.listRegex(answer, from, []string{})
 }
