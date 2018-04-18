@@ -48,7 +48,7 @@ var serverCmd = &cobra.Command{
 		}
 
 		db = database.ReadDBFile(config.DB)
-		go func(){ dbSaveWorker = file.NewSaveJSONWorker(time.Minute, config.DB, db) }()
+		go func() { dbSaveWorker = file.NewSaveJSONWorker(time.Minute, config.DB, db) }()
 
 		logmaniaBot = bot.NewBot(db)
 

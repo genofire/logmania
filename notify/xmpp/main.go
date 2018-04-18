@@ -53,7 +53,7 @@ func Init(config *lib.NotifyConfig, db *database.DB, bot *bot.Bot) notify.Notifi
 		for {
 			element, more := client.Recv()
 			if !more {
-				log.Warn("could not recieve new message, try later")
+				log.Warn("could not receive new message, try later")
 				continue
 			}
 
@@ -143,7 +143,7 @@ func Init(config *lib.NotifyConfig, db *database.DB, bot *bot.Bot) notify.Notifi
 func (n *Notifier) Send(e *log.Entry) error {
 	e, _, tos := n.db.SendTo(e)
 	if tos == nil || len(tos) <= 0 {
-		return errors.New("no reciever found")
+		return errors.New("no receiver found")
 	}
 	text, err := n.formatter.Format(e)
 	if err != nil {

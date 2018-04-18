@@ -43,7 +43,7 @@ func (db *DB) update() {
 			if !ok {
 				notify = db.NewNotify(to)
 			}
-			for exp, _ := range regexs {
+			for exp := range regexs {
 				notify.AddRegex(exp)
 			}
 		}

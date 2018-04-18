@@ -18,7 +18,7 @@ func (n *Notify) Init() {
 	if n.RegexIn == nil {
 		n.RegexIn = make(map[string]*regexp.Regexp)
 	}
-	for exp, _ := range n.RegexIn {
+	for exp := range n.RegexIn {
 		regex, err := regexp.Compile(exp)
 		if err == nil {
 			n.RegexIn[exp] = regex

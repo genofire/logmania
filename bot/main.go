@@ -31,7 +31,7 @@ func NewBot(db *database.DB) *Bot {
 		"regex-list":    b.listRegex,
 		"regex-del":     b.delRegex,
 	}
-	for k, _ := range b.commandsMap {
+	for k := range b.commandsMap {
 		b.commands = append(b.commands, k)
 	}
 	return b
