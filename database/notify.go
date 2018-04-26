@@ -8,7 +8,7 @@ import (
 )
 
 type Notify struct {
-	Protocoll              string                    `json:"proto"`
+	Protocol               string                    `json:"proto"`
 	To                     string                    `json:"to"`
 	RegexIn                map[string]*regexp.Regexp `json:"regexIn"`
 	RegexReplace           map[string]string         `json:"regexReplace"`
@@ -64,7 +64,7 @@ func (n *Notify) RunReplace(msg string) string {
 }
 
 func (n *Notify) Address() string {
-	return n.Protocoll + ":" + n.To
+	return n.Protocol + ":" + n.To
 }
 
 // -- global notify
@@ -87,9 +87,9 @@ func (db *DB) AddNotify(n *Notify) {
 func (db *DB) NewNotify(to string) *Notify {
 	addr := strings.Split(to, ":")
 	n := &Notify{
-		Protocoll: addr[0],
-		To:        addr[1],
-		RegexIn:   make(map[string]*regexp.Regexp),
+		Protocol: addr[0],
+		To:       addr[1],
+		RegexIn:  make(map[string]*regexp.Regexp),
 	}
 	db.AddNotify(n)
 	return n
