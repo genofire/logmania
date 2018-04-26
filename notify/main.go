@@ -11,7 +11,7 @@ import (
 var NotifyRegister []NotifyInit
 
 type Notifier interface {
-	Send(entry *log.Entry) error
+	Send(entry *log.Entry, to *database.Notify) bool
 	Close()
 }
 

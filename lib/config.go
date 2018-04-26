@@ -3,10 +3,9 @@ package lib
 // Struct of the configuration
 // e.g. under dev.sum7.eu/genofire/logmania/logmania_example.conf
 type Config struct {
-	Notify      NotifyConfig  `toml:"notify"`
-	Receive     ReceiveConfig `toml:"receive"`
-	DB          string        `toml:"database"`
-	HTTPAddress string        `toml:"http_address"`
+	Notify  NotifyConfig  `toml:"notify"`
+	Receive ReceiveConfig `toml:"receive"`
+	DB      string        `toml:"database"`
 }
 
 type NotifyConfig struct {
@@ -16,7 +15,10 @@ type NotifyConfig struct {
 		JID      string `toml:"jid"`
 		Password string `toml:"password"`
 	} `toml:"xmpp"`
-	File string `toml:"file"`
+	Websocket struct {
+		Address string `toml:"address"`
+		Webroot string `toml:"webroot"`
+	} `toml:"websocket"`
 }
 
 type ReceiveConfig struct {

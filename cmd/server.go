@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -57,7 +56,7 @@ var serverCmd = &cobra.Command{
 
 		go func() {
 			for a := range logChannel {
-				notifier.Send(a)
+				notifier.Send(a, nil)
 			}
 		}()
 
@@ -70,16 +69,6 @@ var serverCmd = &cobra.Command{
 		receiver = allReceiver.Init(&config.Receive, logChannel)
 
 		go receiver.Listen()
-
-		srv := &http.Server{
-			Addr: config.HTTPAddress,
-		}
-
-		go func() {
-			if err := srv.ListenAndServe(); err != nil {
-				panic(err)
-			}
-		}()
 
 		// Wait for system signal
 		sigchan := make(chan os.Signal, 1)

@@ -1,7 +1,7 @@
 package xmpp
 
 import (
-	"errors"
+	"strings"
 
 	xmpp_client "dev.sum7.eu/genofire/yaja/client"
 	xmpp "dev.sum7.eu/genofire/yaja/xmpp"
@@ -26,7 +26,6 @@ type Notifier struct {
 	notify.Notifier
 	client    *xmpp_client.Client
 	channels  map[string]bool
-	db        *database.DB
 	formatter log.Formatter
 }
 
@@ -116,7 +115,7 @@ func Init(config *lib.NotifyConfig, db *database.DB, bot *bot.Bot) notify.Notifi
 		}
 	}()
 	for toAddr, toAddresses := range db.NotifiesByAddress {
-		if toAddresses.Protocoll == protoGroup {
+		if toAddresses.Protocol == protoGroup {
 			toJID := xmppbase.NewJID(toAddresses.To)
 			toJID.Resource = nickname
 			err := client.Send(&xmpp.PresenceClient{
@@ -133,60 +132,54 @@ func Init(config *lib.NotifyConfig, db *database.DB, bot *bot.Bot) notify.Notifi
 	return &Notifier{
 		channels: channels,
 		client:   client,
-		db:       db,
 		formatter: &log.TextFormatter{
 			DisableTimestamp: true,
 		},
 	}
 }
 
-func (n *Notifier) Send(e *log.Entry) error {
-	e, _, tos := n.db.SendTo(e)
-	if tos == nil || len(tos) <= 0 {
-		return errors.New("no receiver found")
-	}
-	text, err := n.formatter.Format(e)
+func (n *Notifier) Send(e *log.Entry, to *database.Notify) bool {
+	textByte, err := n.formatter.Format(e)
 	if err != nil {
-		return err
+		logger.Error("during format notify", err)
+		return false
 	}
-	for _, to := range tos {
-		modifyText := string(text)
-		if notify, ok := n.db.NotifiesByAddress[to.Address()]; ok {
-			modifyText = notify.RunReplace(modifyText)
-		}
-		if to.Protocoll == protoGroup {
-			if _, ok := n.channels[to.To]; ok {
-				toJID := xmppbase.NewJID(to.To)
-				toJID.Resource = nickname
-				err := n.client.Send(&xmpp.PresenceClient{
-					To: toJID,
-				})
-				if err != nil {
-					logger.Error("xmpp could not join ", toJID.String(), " error:", err)
-				} else {
-					n.channels[to.To] = true
-				}
-			}
-			err := n.client.Send(&xmpp.MessageClient{
-				Type: xmpp.MessageTypeGroupchat,
-				To:   xmppbase.NewJID(to.To),
-				Body: modifyText,
+	text := strings.TrimRight(to.RegexReplace(string(textByte)), "\n")
+	if to.Protocol == protoGroup {
+		if _, ok := n.channels[to.To]; ok {
+			toJID := xmppbase.NewJID(to.To)
+			toJID.Resource = nickname
+			err := n.client.Send(&xmpp.PresenceClient{
+				To: toJID,
 			})
 			if err != nil {
-				logger.Error("xmpp to ", to.To, " error:", err)
-			}
-		} else {
-			err := n.client.Send(&xmpp.MessageClient{
-				Type: xmpp.MessageTypeChat,
-				To:   xmppbase.NewJID(to.To),
-				Body: modifyText,
-			})
-			if err != nil {
-				logger.Error("xmpp to ", to, " error:", err)
+				logger.Error("xmpp could not join ", toJID.String(), " error:", err)
+			} else {
+				n.channels[to.To] = true
 			}
 		}
+		err := n.client.Send(&xmpp.MessageClient{
+			Type: xmpp.MessageTypeGroupchat,
+			To:   xmppbase.NewJID(to.To),
+			Body: text,
+		})
+		if err != nil {
+			logger.Error("xmpp to ", to.To, " error:", err)
+		}
+		return true
 	}
-	return nil
+	if to.Protocol == proto {
+		err := n.client.Send(&xmpp.MessageClient{
+			Type: xmpp.MessageTypeChat,
+			To:   xmppbase.NewJID(to.To),
+			Body: text,
+		})
+		if err != nil {
+			logger.Error("xmpp to ", to, " error:", err)
+		}
+		return true
+	}
+	return false
 }
 
 func (n *Notifier) Close() {

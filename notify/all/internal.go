@@ -9,9 +9,12 @@ import (
 	"dev.sum7.eu/genofire/logmania/notify"
 )
 
+var logger = log.WithField("notify", "all")
+
 type Notifier struct {
 	notify.Notifier
 	list          []notify.Notifier
+	db            *database.DB
 	channelNotify chan *log.Entry
 }
 
@@ -27,6 +30,7 @@ func Init(config *lib.NotifyConfig, db *database.DB, bot *bot.Bot) notify.Notifi
 	}
 
 	n := &Notifier{
+		db:            db,
 		list:          list,
 		channelNotify: make(chan *log.Entry),
 	}
@@ -36,15 +40,25 @@ func Init(config *lib.NotifyConfig, db *database.DB, bot *bot.Bot) notify.Notifi
 
 func (n *Notifier) sender() {
 	for c := range n.channelNotify {
-		for _, item := range n.list {
-			item.Send(c)
+		e, _, tos := n.db.SendTo(c)
+		for _, to := range tos {
+			send := false
+			for _, item := range n.list {
+				send = item.Send(e, to)
+				if send {
+					break
+				}
+			}
+			if !send {
+				logger.Warn("notify not send to anybody: [%s] %s", c.Level.String(), c.Message)
+			}
 		}
 	}
 }
 
-func (n *Notifier) Send(e *log.Entry) error {
+func (n *Notifier) Send(e *log.Entry, to *database.Notify) bool {
 	n.channelNotify <- e
-	return nil
+	return true
 }
 
 func (n *Notifier) Close() {

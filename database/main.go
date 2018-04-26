@@ -64,7 +64,7 @@ func (db *DB) SendTo(e *log.Entry) (*log.Entry, *Host, []*Notify) {
 	return e, host, nil
 }
 
-func (db *DB) Alert(expired time.Duration, send func(e *log.Entry) error) {
+func (db *DB) Alert(expired time.Duration, send func(e *log.Entry, n *Notify) bool) {
 	c := time.Tick(time.Minute)
 
 	for range c {
@@ -81,7 +81,7 @@ func (db *DB) Alert(expired time.Duration, send func(e *log.Entry) error) {
 			entry.Level = log.ErrorLevel
 			entry.Message = AlertMsg
 			entry.WithField("hostname", h.Address)
-			send(entry)
+			send(entry, nil)
 		}
 	}
 }
