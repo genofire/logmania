@@ -19,6 +19,7 @@ type NotifyConfig struct {
 		Address string `toml:"address"`
 		Webroot string `toml:"webroot"`
 	} `toml:"websocket"`
+	FileDirectory string `toml:"file_directory"`
 }
 
 type ReceiveConfig struct {

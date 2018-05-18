@@ -66,9 +66,17 @@ func (n *Notifier) Send(e *log.Entry, to *database.Notify) bool {
 	if to.Protocol != proto {
 		return false
 	}
+
 	n.ws.SendAll(&websocket.Message{
 		Subject: to.Address(),
-		Body:    e,
+		Body: &log.Entry{
+			Buffer:  e.Buffer,
+			Data:    e.Data,
+			Level:   e.Level,
+			Logger:  e.Logger,
+			Message: to.RunReplace(e.Message),
+			Time:    e.Time,
+		},
 	})
 	return true
 }

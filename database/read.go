@@ -9,12 +9,12 @@ func ReadDBFile(path string) *DB {
 	var db DB
 
 	if err := file.ReadJSON(path, &db); err == nil {
-		log.Infof("loaded %d hosts", len(db.HostTo))
 
 		db.InitNotify()
 		db.InitHost()
 		// import
 		db.update()
+		log.Infof("loaded %d hosts and %d notifies", len(db.Hosts), len(db.Notifies))
 		return &db
 	} else {
 		log.Error("failed to open db file: ", path, ":", err)

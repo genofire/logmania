@@ -10,6 +10,7 @@ import (
 const AlertMsg = "alert service from logmania, device did not send new message for a while"
 
 type DB struct {
+	// depraced Format -> transformation to new format by db.update()
 	Hostname       map[string]string                    `json:"hostname,omitempty"`
 	HostTo         map[string]map[string]bool           `json:"host_to,omitempty"`
 	MaxPrioIn      map[string]log.Level                 `json:"maxLevel,omitempty"`

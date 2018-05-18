@@ -11,7 +11,7 @@ function levelToColor (lvl) {
 
 function addItem (el, msg) {
 	const div = domlib.newAt(el, 'div', {
-		'class': levelToColor(msg.Leve)
+		'class': levelToColor(msg.Level)
 	});
 	domlib.newAt(div, 'span', null, msg.Data.hostname);
 	domlib.newAt(div, 'span', null, msg.Message);
@@ -24,13 +24,6 @@ class LogView extends View {
 		if (!this.init) {
 			this.init = true;
 		}
-
-		/*
-		 * Domlib.newAt(this.el, 'h2', {'class': 'ui header'}, 'Log');
-		 * for (const msg in store.channel.ffhb) {
-		 * domlib.newAt(this.el, 'div', null, msg.Data.hostname, msg);
-		 *}
-		 */
 	}
 
 

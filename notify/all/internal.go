@@ -50,7 +50,7 @@ func (n *Notifier) sender() {
 				}
 			}
 			if !send {
-				logger.Warn("notify not send to anybody: [%s] %s", c.Level.String(), c.Message)
+				logger.Warnf("notify not send to anybody: [%s] %s", c.Level.String(), c.Message)
 			}
 		}
 	}
