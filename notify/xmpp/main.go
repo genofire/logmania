@@ -150,6 +150,10 @@ func (n *Notifier) Send(e *log.Entry) error {
 		return err
 	}
 	for _, to := range tos {
+		modifyText := string(text)
+		if notify, ok := n.db.NotifiesByAddress[to.Address()]; ok {
+			modifyText = notify.RunReplace(modifyText)
+		}
 		if to.Protocoll == protoGroup {
 			if _, ok := n.channels[to.To]; ok {
 				toJID := xmppbase.NewJID(to.To)
@@ -166,7 +170,7 @@ func (n *Notifier) Send(e *log.Entry) error {
 			err := n.client.Send(&xmpp.MessageClient{
 				Type: xmpp.MessageTypeGroupchat,
 				To:   xmppbase.NewJID(to.To),
-				Body: string(text),
+				Body: modifyText,
 			})
 			if err != nil {
 				logger.Error("xmpp to ", to.To, " error:", err)
@@ -175,7 +179,7 @@ func (n *Notifier) Send(e *log.Entry) error {
 			err := n.client.Send(&xmpp.MessageClient{
 				Type: xmpp.MessageTypeChat,
 				To:   xmppbase.NewJID(to.To),
-				Body: string(text),
+				Body: modifyText,
 			})
 			if err != nil {
 				logger.Error("xmpp to ", to, " error:", err)
