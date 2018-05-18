@@ -2,7 +2,6 @@ package bot
 
 import (
 	"fmt"
-	"strings"
 
 	timeago "github.com/ararog/timeago"
 	log "github.com/sirupsen/logrus"
@@ -235,11 +234,16 @@ func (b *Bot) addRegex(answer func(string), from string, params []string) {
 		answer("invalid: CMD regex\n or\n CMD channel regex")
 		return
 	}
-	regex := strings.Join(params, " ")
+	of := from
+	regex := params[0]
+	if len(params) > 1 {
+		of = params[0]
+		regex = params[1]
+	}
 
-	n := b.db.NotifiesByAddress[from]
+	n := b.db.NotifiesByAddress[of]
 	if err := n.AddRegex(regex); err == nil {
-		answer(fmt.Sprintf("add regex for \"%s\" to %s", from, regex))
+		answer(fmt.Sprintf("add regex for \"%s\" to %s", of, regex))
 	} else {
 		answer(fmt.Sprintf("\"%s\" is no valid regex expression: %s", regex, err))
 	}
@@ -251,8 +255,79 @@ func (b *Bot) delRegex(answer func(string), from string, params []string) {
 		answer("invalid: CMD regex\n or\n CMD channel regex")
 		return
 	}
-	n := b.db.NotifiesByAddress[from]
-	regex := strings.Join(params, " ")
+	of := from
+	regex := params[0]
+	if len(params) > 1 {
+		of = params[0]
+		regex = params[1]
+	}
+	n := b.db.NotifiesByAddress[of]
 	delete(n.RegexIn, regex)
-	b.listRegex(answer, from, []string{})
+	b.listRegex(answer, of, []string{})
+}
+
+// list of regex replace
+func (b *Bot) listRegexReplace(answer func(string), from string, params []string) {
+	msg := "replaces:\n"
+	if len(params) > 0 && params[0] == "all" {
+		for _, n := range b.db.Notifies {
+			msg = fmt.Sprintf("%s%s\n-------------\n", msg, n.Address())
+			for expression, value := range n.RegexReplace {
+				msg = fmt.Sprintf("%s - \"%s\" : \"%s\"\n", msg, expression, value)
+			}
+		}
+	} else {
+		of := from
+		if len(params) > 0 {
+			of = params[0]
+		}
+		if n, ok := b.db.NotifiesByAddress[of]; ok {
+			msg = fmt.Sprintf("%s%s\n-------------\n", msg, of)
+			for expression, value := range n.RegexReplace {
+				msg = fmt.Sprintf("%s - \"%s\" : \"%s\"\n", msg, expression, value)
+			}
+		}
+	}
+	answer(msg)
+}
+
+// add a regex replace
+func (b *Bot) addRegexReplace(answer func(string), from string, params []string) {
+	if len(params) < 1 {
+		answer("invalid: CMD regex replace\n or\n CMD channel regex replace")
+		return
+	}
+	of := from
+	regex := params[0]
+	value := params[1]
+	if len(params) > 2 {
+		of = params[0]
+		regex = params[1]
+		value = params[2]
+	}
+
+	n := b.db.NotifiesByAddress[of]
+	if err := n.AddRegexReplace(regex, value); err == nil {
+		answer(fmt.Sprintf("add replace in \"%s\" for \"%s\" to \"%s\"", of, regex, value))
+	} else {
+		answer(fmt.Sprintf("\"%s\" to \"%s\" is no valid regex replace expression: %s", regex, value, err))
+	}
+}
+
+// del a regex replace
+func (b *Bot) delRegexReplace(answer func(string), from string, params []string) {
+	if len(params) < 1 {
+		answer("invalid: CMD regex\n or\n CMD channel regex")
+		return
+	}
+	of := from
+	regex := params[0]
+	if len(params) > 1 {
+		of = params[0]
+		regex = params[1]
+	}
+	n := b.db.NotifiesByAddress[of]
+
+	delete(n.RegexReplace, regex)
+	b.listRegexReplace(answer, of, []string{})
 }
