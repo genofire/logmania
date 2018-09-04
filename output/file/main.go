@@ -5,82 +5,92 @@ import (
 	"path"
 	"regexp"
 
+	"github.com/mitchellh/mapstructure"
 	log "github.com/sirupsen/logrus"
 
 	"dev.sum7.eu/genofire/logmania/bot"
 	"dev.sum7.eu/genofire/logmania/database"
-	"dev.sum7.eu/genofire/logmania/lib"
-	"dev.sum7.eu/genofire/logmania/notify"
+	"dev.sum7.eu/genofire/logmania/output"
 )
 
 const (
 	proto = "file"
 )
 
-var logger = log.WithField("notify", proto)
+var logger = log.WithField("output", proto)
 
-type Notifier struct {
-	notify.Notifier
+type Output struct {
+	output.Output
 	defaults  []*database.Notify
 	files     map[string]*os.File
 	formatter log.Formatter
 	path      string
 }
 
-func Init(config *lib.NotifyConfig, db *database.DB, bot *bot.Bot) notify.Notifier {
-	if config.File.Directory == "" {
+type OutputConfig struct {
+	Directory string `mapstructure:"directory"`
+	Default   string `mapstructure:"default"`
+}
+
+func Init(configInterface interface{}, db *database.DB, bot *bot.Bot) output.Output {
+	var config OutputConfig
+	if err := mapstructure.Decode(configInterface, &config); err != nil {
+		logger.Warnf("not able to decode data: %s", err)
 		return nil
 	}
-	logger.WithField("directory", config.File.Directory).Info("startup")
+	if config.Directory == "" {
+		return nil
+	}
+	logger.WithField("directory", config.Directory).Info("startup")
 
 	var defaults []*database.Notify
-	if config.File.Default != "" {
+	if config.Default != "" {
 		defaults = append(defaults, &database.Notify{
 			Protocol: proto,
-			To:       config.File.Default,
+			To:       config.Default,
 		})
 	}
 
-	return &Notifier{
+	return &Output{
 		defaults:  defaults,
 		files:     make(map[string]*os.File),
 		formatter: &log.JSONFormatter{},
-		path:      config.File.Directory,
+		path:      config.Directory,
 	}
 }
 
-func (n *Notifier) Default() []*database.Notify {
-	return n.defaults
+func (out *Output) Default() []*database.Notify {
+	return out.defaults
 }
 
-func (n *Notifier) getFile(name string) *os.File {
-	if file, ok := n.files[name]; ok {
+func (out *Output) getFile(name string) *os.File {
+	if file, ok := out.files[name]; ok {
 		return file
 	}
 	if m, err := regexp.MatchString(`^[0-9A-Za-z_-]*$`, name); err != nil || !m {
 		logger.Errorf("not allowed to use '%s:%s'", proto, name)
 		return nil
 	}
-	filename := path.Join(n.path, name+".json")
+	filename := path.Join(out.path, name+".json")
 	file, err := os.OpenFile(filename, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
 		logger.Errorf("could not open file: %s", err.Error())
 		return nil
 	}
-	n.files[name] = file
+	out.files[name] = file
 	return file
 }
 
-func (n *Notifier) Send(e *log.Entry, to *database.Notify) bool {
+func (out *Output) Send(e *log.Entry, to *database.Notify) bool {
 	if to.Protocol != proto {
 		return false
 	}
-	byteText, err := n.formatter.Format(e)
+	byteText, err := out.formatter.Format(e)
 	if err != nil {
 		return false
 	}
 	text := to.RunReplace(string(byteText))
-	file := n.getFile(to.To)
+	file := out.getFile(to.To)
 	if file == nil {
 		return false
 	}
@@ -89,5 +99,5 @@ func (n *Notifier) Send(e *log.Entry, to *database.Notify) bool {
 }
 
 func init() {
-	notify.AddNotifier(Init)
+	output.Add(proto, Init)
 }

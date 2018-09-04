@@ -4,7 +4,7 @@ import (
 	"io"
 
 	websocketLib "dev.sum7.eu/genofire/golang-lib/websocket"
-	"dev.sum7.eu/genofire/logmania/receive/logrus"
+	"dev.sum7.eu/genofire/logmania/input/logrus"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"

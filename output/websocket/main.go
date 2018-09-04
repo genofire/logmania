@@ -4,33 +4,41 @@ import (
 	"net/http"
 
 	"dev.sum7.eu/genofire/golang-lib/websocket"
+	"github.com/mitchellh/mapstructure"
 	log "github.com/sirupsen/logrus"
 
 	"dev.sum7.eu/genofire/logmania/bot"
 	"dev.sum7.eu/genofire/logmania/database"
-	"dev.sum7.eu/genofire/logmania/lib"
-	"dev.sum7.eu/genofire/logmania/notify"
+	"dev.sum7.eu/genofire/logmania/output"
 )
 
 const (
 	proto = "ws"
 )
 
-var logger = log.WithField("notify", proto)
+var logger = log.WithField("output", proto)
 
-type Notifier struct {
-	notify.Notifier
+type Output struct {
+	output.Output
 	defaults  []*database.Notify
 	ws        *websocket.Server
 	formatter log.Formatter
 }
 
-func Init(config *lib.NotifyConfig, db *database.DB, bot *bot.Bot) notify.Notifier {
+type OutputConfig struct {
+	Default string `mapstructure:"default"`
+}
+
+func Init(configInterface interface{}, db *database.DB, bot *bot.Bot) output.Output {
+	var config OutputConfig
+	if err := mapstructure.Decode(configInterface, &config); err != nil {
+		logger.Warnf("not able to decode data: %s", err)
+		return nil
+	}
 	inputMSG := make(chan *websocket.Message)
 	ws := websocket.NewServer(inputMSG, nil)
 
-	http.HandleFunc("/ws", ws.Handler)
-	http.Handle("/", http.FileServer(http.Dir(config.Websocket.Webroot)))
+	http.HandleFunc("/output/ws", ws.Handler)
 
 	go func() {
 		for msg := range inputMSG {
@@ -44,26 +52,16 @@ func Init(config *lib.NotifyConfig, db *database.DB, bot *bot.Bot) notify.Notifi
 		}
 	}()
 
-	srv := &http.Server{
-		Addr: config.Websocket.Address,
-	}
-
-	go func() {
-		if err := srv.ListenAndServe(); err != nil {
-			panic(err)
-		}
-	}()
-
-	logger.WithField("http-socket", config.Websocket.Address).Info("startup")
+	logger.Info("startup")
 
 	var defaults []*database.Notify
-	if config.Websocket.Default != "" {
+	if config.Default != "" {
 		defaults = append(defaults, &database.Notify{
 			Protocol: proto,
-			To:       config.Websocket.Default,
+			To:       config.Default,
 		})
 	}
-	return &Notifier{
+	return &Output{
 		defaults: defaults,
 		ws:       ws,
 		formatter: &log.TextFormatter{
@@ -72,16 +70,16 @@ func Init(config *lib.NotifyConfig, db *database.DB, bot *bot.Bot) notify.Notifi
 	}
 }
 
-func (n *Notifier) Default() []*database.Notify {
-	return n.defaults
+func (out *Output) Default() []*database.Notify {
+	return out.defaults
 }
 
-func (n *Notifier) Send(e *log.Entry, to *database.Notify) bool {
+func (out *Output) Send(e *log.Entry, to *database.Notify) bool {
 	if to.Protocol != proto {
 		return false
 	}
 
-	n.ws.SendAll(&websocket.Message{
+	out.ws.SendAll(&websocket.Message{
 		Subject: to.Address(),
 		Body: &log.Entry{
 			Buffer:  e.Buffer,
@@ -95,9 +93,9 @@ func (n *Notifier) Send(e *log.Entry, to *database.Notify) bool {
 	return true
 }
 
-func (n *Notifier) Close() {
+func (out *Output) Close() {
 }
 
 func init() {
-	notify.AddNotifier(Init)
+	output.Add("websocket", Init)
 }

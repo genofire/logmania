@@ -6,12 +6,12 @@ import (
 	xmpp_client "dev.sum7.eu/genofire/yaja/client"
 	xmpp "dev.sum7.eu/genofire/yaja/xmpp"
 	"dev.sum7.eu/genofire/yaja/xmpp/base"
+	"github.com/mitchellh/mapstructure"
 	log "github.com/sirupsen/logrus"
 
 	"dev.sum7.eu/genofire/logmania/bot"
 	"dev.sum7.eu/genofire/logmania/database"
-	"dev.sum7.eu/genofire/logmania/lib"
-	"dev.sum7.eu/genofire/logmania/notify"
+	"dev.sum7.eu/genofire/logmania/output"
 )
 
 const (
@@ -20,20 +20,31 @@ const (
 	nickname   = "logmania"
 )
 
-var logger = log.WithField("notify", proto)
+var logger = log.WithField("output", proto)
 
-type Notifier struct {
-	notify.Notifier
+type Output struct {
+	output.Output
 	defaults  []*database.Notify
 	client    *xmpp_client.Client
 	channels  map[string]bool
 	formatter log.Formatter
 }
 
-func Init(config *lib.NotifyConfig, db *database.DB, bot *bot.Bot) notify.Notifier {
+type OutputConfig struct {
+	JID      string          `mapstructure:"jid"`
+	Password string          `mapstructure:"password"`
+	Defaults map[string]bool `mapstructure:"default"`
+}
+
+func Init(configInterface interface{}, db *database.DB, bot *bot.Bot) output.Output {
+	var config OutputConfig
+	if err := mapstructure.Decode(configInterface, &config); err != nil {
+		logger.Warnf("not able to decode data: %s", err)
+		return nil
+	}
 	channels := make(map[string]bool)
 
-	client, err := xmpp_client.NewClient(xmppbase.NewJID(config.XMPP.JID), config.XMPP.Password)
+	client, err := xmpp_client.NewClient(xmppbase.NewJID(config.JID), config.Password)
 	if err != nil {
 		logger.Error(err)
 		return nil
@@ -42,7 +53,7 @@ func Init(config *lib.NotifyConfig, db *database.DB, bot *bot.Bot) notify.Notifi
 		for {
 			if err := client.Start(); err != nil {
 				log.Warn("close connection, try reconnect")
-				client.Connect(config.XMPP.Password)
+				client.Connect(config.Password)
 			} else {
 				log.Warn("closed connection")
 				return
@@ -130,10 +141,10 @@ func Init(config *lib.NotifyConfig, db *database.DB, bot *bot.Bot) notify.Notifi
 		}
 	}
 
-	logger.WithField("jid", config.XMPP.JID).Info("startup")
+	logger.WithField("jid", config.JID).Info("startup")
 
 	var defaults []*database.Notify
-	for to, muc := range config.XMPP.Defaults {
+	for to, muc := range config.Defaults {
 		def := &database.Notify{
 			Protocol: proto,
 			To:       to,
@@ -143,7 +154,7 @@ func Init(config *lib.NotifyConfig, db *database.DB, bot *bot.Bot) notify.Notifi
 		}
 		defaults = append(defaults, def)
 	}
-	return &Notifier{
+	return &Output{
 		channels: channels,
 		defaults: defaults,
 		client:   client,
@@ -153,31 +164,31 @@ func Init(config *lib.NotifyConfig, db *database.DB, bot *bot.Bot) notify.Notifi
 	}
 }
 
-func (n *Notifier) Default() []*database.Notify {
-	return n.defaults
+func (out *Output) Default() []*database.Notify {
+	return out.defaults
 }
 
-func (n *Notifier) Send(e *log.Entry, to *database.Notify) bool {
-	textByte, err := n.formatter.Format(e)
+func (out *Output) Send(e *log.Entry, to *database.Notify) bool {
+	textByte, err := out.formatter.Format(e)
 	if err != nil {
 		logger.Error("during format notify", err)
 		return false
 	}
 	text := strings.TrimRight(to.RunReplace(string(textByte)), "\n")
 	if to.Protocol == protoGroup {
-		if _, ok := n.channels[to.To]; ok {
+		if _, ok := out.channels[to.To]; ok {
 			toJID := xmppbase.NewJID(to.To)
 			toJID.Resource = nickname
-			err := n.client.Send(&xmpp.PresenceClient{
+			err := out.client.Send(&xmpp.PresenceClient{
 				To: toJID,
 			})
 			if err != nil {
 				logger.Error("xmpp could not join ", toJID.String(), " error:", err)
 			} else {
-				n.channels[to.To] = true
+				out.channels[to.To] = true
 			}
 		}
-		err := n.client.Send(&xmpp.MessageClient{
+		err := out.client.Send(&xmpp.MessageClient{
 			Type: xmpp.MessageTypeGroupchat,
 			To:   xmppbase.NewJID(to.To),
 			Body: text,
@@ -188,7 +199,7 @@ func (n *Notifier) Send(e *log.Entry, to *database.Notify) bool {
 		return true
 	}
 	if to.Protocol == proto {
-		err := n.client.Send(&xmpp.MessageClient{
+		err := out.client.Send(&xmpp.MessageClient{
 			Type: xmpp.MessageTypeChat,
 			To:   xmppbase.NewJID(to.To),
 			Body: text,
@@ -201,11 +212,11 @@ func (n *Notifier) Send(e *log.Entry, to *database.Notify) bool {
 	return false
 }
 
-func (n *Notifier) Close() {
-	for jid := range n.channels {
+func (out *Output) Close() {
+	for jid := range out.channels {
 		toJID := xmppbase.NewJID(jid)
 		toJID.Resource = nickname
-		err := n.client.Send(&xmpp.PresenceClient{
+		err := out.client.Send(&xmpp.PresenceClient{
 			To:   toJID,
 			Type: xmpp.PresenceTypeUnavailable,
 		})
@@ -213,9 +224,9 @@ func (n *Notifier) Close() {
 			logger.Error("xmpp could not leave ", toJID.String(), " error:", err)
 		}
 	}
-	n.client.Close()
+	out.client.Close()
 }
 
 func init() {
-	notify.AddNotifier(Init)
+	output.Add(proto, Init)
 }

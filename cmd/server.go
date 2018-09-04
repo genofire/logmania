@@ -1,11 +1,13 @@
 package cmd
 
 import (
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/NYTimes/gziphandler"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
@@ -13,11 +15,11 @@ import (
 	"dev.sum7.eu/genofire/golang-lib/worker"
 	"dev.sum7.eu/genofire/logmania/bot"
 	"dev.sum7.eu/genofire/logmania/database"
+	"dev.sum7.eu/genofire/logmania/input"
+	allInput "dev.sum7.eu/genofire/logmania/input/all"
 	"dev.sum7.eu/genofire/logmania/lib"
-	"dev.sum7.eu/genofire/logmania/notify"
-	allNotify "dev.sum7.eu/genofire/logmania/notify/all"
-	"dev.sum7.eu/genofire/logmania/receive"
-	allReceiver "dev.sum7.eu/genofire/logmania/receive/all"
+	"dev.sum7.eu/genofire/logmania/output"
+	allOutput "dev.sum7.eu/genofire/logmania/output/all"
 )
 
 var (
@@ -25,8 +27,8 @@ var (
 	config       *lib.Config
 	db           *database.DB
 	dbSaveWorker *worker.Worker
-	notifier     notify.Notifier
-	receiver     receive.Receiver
+	out          output.Output
+	in           input.Input
 	logChannel   chan *log.Entry
 	logmaniaBot  *bot.Bot
 )
@@ -51,24 +53,40 @@ var serverCmd = &cobra.Command{
 
 		logmaniaBot = bot.NewBot(db)
 
-		notifier = allNotify.Init(&config.Notify, db, logmaniaBot)
+		out = allOutput.Init(config.Output, db, logmaniaBot)
 		logChannel = make(chan *log.Entry)
 
 		go func() {
 			for a := range logChannel {
-				notifier.Send(a, nil)
+				out.Send(a, nil)
 			}
 		}()
 
-		if config.Notify.AlertCheck.Duration > time.Duration(time.Second) {
-			go db.Alert(config.Notify.AlertCheck.Duration, notifier.Send)
+		if config.AlertCheck.Duration > time.Duration(time.Second) {
+			go db.Alert(config.AlertCheck.Duration, out.Send)
 		}
 
 		log.Info("starting logmania")
 
-		receiver = allReceiver.Init(&config.Receive, logChannel)
+		if config.HTTPAddress != "" {
+			if config.Webroot != "" {
+				http.Handle("/", gziphandler.GzipHandler(http.FileServer(http.Dir(config.Webroot))))
+			}
 
-		go receiver.Listen()
+			srv := &http.Server{
+				Addr: config.HTTPAddress,
+			}
+
+			go func() {
+				if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+					log.Panic(err)
+				}
+			}()
+		}
+
+		in = allInput.Init(config.Input, logChannel)
+
+		go in.Listen()
 
 		// Wait for system signal
 		sigchan := make(chan os.Signal, 1)
@@ -92,8 +110,8 @@ var serverCmd = &cobra.Command{
 func quit() {
 	dbSaveWorker.Close()
 	file.SaveJSON(config.DB, db)
-	receiver.Close()
-	notifier.Close()
+	in.Close()
+	out.Close()
 	log.Info("quit of logmania")
 	os.Exit(0)
 }
@@ -106,12 +124,12 @@ func reload() {
 		log.Errorf("reload: could not load '%s' for new configuration. Skip reload.", configPath)
 		return
 	}
-	receiver.Close()
-	receiver = allReceiver.Init(&config.Receive, logChannel)
-	go receiver.Listen()
+	in.Close()
+	in = allInput.Init(config.Input, logChannel)
+	go in.Listen()
 
-	notifier.Close()
-	notifier = allNotify.Init(&config.Notify, db, logmaniaBot)
+	out.Close()
+	out = allOutput.Init(config.Output, db, logmaniaBot)
 }
 
 func init() {

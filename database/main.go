@@ -76,10 +76,10 @@ func (db *DB) Alert(expired time.Duration, send func(e *log.Entry, n *Notify) bo
 	for range c {
 		now := time.Now()
 		for _, h := range db.Hosts {
-			if !h.Lastseen.Before(now.Add(expired * -2)) {
+			if h.Lastseen.Before(now.Add(expired * -1)) {
 				continue
 			}
-			if h.LastseenNotify.Year() <= 1 && h.Lastseen.Before(h.LastseenNotify) {
+			if h.Lastseen.After(h.LastseenNotify) {
 				continue
 			}
 			h.LastseenNotify = now

@@ -6,28 +6,28 @@ import (
 	"dev.sum7.eu/genofire/golang-lib/websocket"
 	log "github.com/sirupsen/logrus"
 
-	"dev.sum7.eu/genofire/logmania/lib"
-	"dev.sum7.eu/genofire/logmania/receive"
+	"dev.sum7.eu/genofire/logmania/input"
 )
 
+const inputType = "logrus"
 const WS_LOG_ENTRY = "log"
 
-var logger = log.WithField("receive", "logrus")
+var logger = log.WithField("input", inputType)
 
-type Receiver struct {
-	receive.Receiver
+type Input struct {
+	input.Input
 	input         chan *websocket.Message
 	exportChannel chan *log.Entry
 	serverSocket  *websocket.Server
 }
 
-func Init(config *lib.ReceiveConfig, exportChannel chan *log.Entry) receive.Receiver {
+func Init(config interface{}, exportChannel chan *log.Entry) input.Input {
 	inputMsg := make(chan *websocket.Message)
 	ws := websocket.NewServer(inputMsg, websocket.NewSessionManager())
 
-	http.HandleFunc("/receiver", ws.Handler)
+	http.HandleFunc("/input/"+inputType, ws.Handler)
 
-	recv := &Receiver{
+	input := &Input{
 		input:         inputMsg,
 		serverSocket:  ws,
 		exportChannel: exportChannel,
@@ -35,21 +35,21 @@ func Init(config *lib.ReceiveConfig, exportChannel chan *log.Entry) receive.Rece
 
 	logger.Info("init")
 
-	return recv
+	return input
 }
 
-func (rc *Receiver) Listen() {
+func (in *Input) Listen() {
 	logger.Info("listen")
-	for msg := range rc.input {
+	for msg := range in.input {
 		if event, ok := msg.Body.(log.Entry); ok {
-			rc.exportChannel <- &event
+			in.exportChannel <- &event
 		}
 	}
 }
 
-func (rc *Receiver) Close() {
+func (in *Input) Close() {
 }
 
 func init() {
-	receive.AddReceiver("websocket", Init)
+	input.Add(inputType, Init)
 }
