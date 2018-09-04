@@ -24,6 +24,7 @@ var logger = log.WithField("notify", proto)
 
 type Notifier struct {
 	notify.Notifier
+	defaults  []*database.Notify
 	client    *xmpp_client.Client
 	channels  map[string]bool
 	formatter log.Formatter
@@ -128,14 +129,32 @@ func Init(config *lib.NotifyConfig, db *database.DB, bot *bot.Bot) notify.Notifi
 			}
 		}
 	}
-	logger.Info("startup")
+
+	logger.WithField("jid", config.XMPP.JID).Info("startup")
+
+	var defaults []*database.Notify
+	for to, muc := range config.XMPP.Defaults {
+		def := &database.Notify{
+			Protocol: proto,
+			To:       to,
+		}
+		if muc {
+			def.Protocol = protoGroup
+		}
+		defaults = append(defaults, def)
+	}
 	return &Notifier{
 		channels: channels,
+		defaults: defaults,
 		client:   client,
 		formatter: &log.TextFormatter{
 			DisableTimestamp: true,
 		},
 	}
+}
+
+func (n *Notifier) Default() []*database.Notify {
+	return n.defaults
 }
 
 func (n *Notifier) Send(e *log.Entry, to *database.Notify) bool {

@@ -23,6 +23,7 @@ type DB struct {
 	HostsByName       map[string]*Host   `json:"-"`
 	Notifies          []*Notify          `json:"notifies"`
 	NotifiesByAddress map[string]*Notify `json:"-"`
+	DefaultNotify     []*Notify          `json:"-"`
 }
 
 func (db *DB) SendTo(e *log.Entry) (*log.Entry, *Host, []*Notify) {
@@ -36,6 +37,17 @@ func (db *DB) SendTo(e *log.Entry) (*log.Entry, *Host, []*Notify) {
 			host.Lastseen = time.Now()
 		}
 		var toList []*Notify
+		entry := e
+		if host.Name != "" {
+			entry = entry.WithField("hostname", host.Name)
+			entry.Level = e.Level
+			entry.Message = e.Message
+		}
+		// return default notify list
+		if host.Notifies == nil || len(host.Notifies) == 0 {
+			return entry, host, db.DefaultNotify
+		}
+		// return with host specify list
 		for _, notify := range host.NotifiesByAddress {
 			if lvl := notify.MaxPrioIn; e.Level >= lvl {
 				continue
@@ -52,17 +64,10 @@ func (db *DB) SendTo(e *log.Entry) (*log.Entry, *Host, []*Notify) {
 			}
 			toList = append(toList, notify)
 		}
-		if host.Name != "" {
-			entry := e.WithField("hostname", host.Name)
-			entry.Level = e.Level
-			entry.Message = e.Message
-			return entry, host, toList
-		}
-		return e, host, toList
-	} else {
-		host = db.NewHost(addr)
+		return entry, host, toList
 	}
-	return e, host, nil
+	host = db.NewHost(addr)
+	return e, host, db.DefaultNotify
 }
 
 func (db *DB) Alert(expired time.Duration, send func(e *log.Entry, n *Notify) bool) {

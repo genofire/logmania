@@ -21,22 +21,36 @@ var logger = log.WithField("notify", proto)
 
 type Notifier struct {
 	notify.Notifier
+	defaults  []*database.Notify
 	files     map[string]*os.File
 	formatter log.Formatter
 	path      string
 }
 
 func Init(config *lib.NotifyConfig, db *database.DB, bot *bot.Bot) notify.Notifier {
-	logger.Info("startup")
-	if config.FileDirectory == "" {
+	if config.File.Directory == "" {
 		return nil
+	}
+	logger.WithField("directory", config.File.Directory).Info("startup")
+
+	var defaults []*database.Notify
+	if config.File.Default != "" {
+		defaults = append(defaults, &database.Notify{
+			Protocol: proto,
+			To:       config.File.Default,
+		})
 	}
 
 	return &Notifier{
+		defaults:  defaults,
 		files:     make(map[string]*os.File),
 		formatter: &log.JSONFormatter{},
-		path:      config.FileDirectory,
+		path:      config.File.Directory,
 	}
+}
+
+func (n *Notifier) Default() []*database.Notify {
+	return n.defaults
 }
 
 func (n *Notifier) getFile(name string) *os.File {

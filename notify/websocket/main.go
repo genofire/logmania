@@ -20,6 +20,7 @@ var logger = log.WithField("notify", proto)
 
 type Notifier struct {
 	notify.Notifier
+	defaults  []*database.Notify
 	ws        *websocket.Server
 	formatter log.Formatter
 }
@@ -53,13 +54,26 @@ func Init(config *lib.NotifyConfig, db *database.DB, bot *bot.Bot) notify.Notifi
 		}
 	}()
 
-	logger.Info("startup")
+	logger.WithField("http-socket", config.Websocket.Address).Info("startup")
+
+	var defaults []*database.Notify
+	if config.Websocket.Default != "" {
+		defaults = append(defaults, &database.Notify{
+			Protocol: proto,
+			To:       config.Websocket.Default,
+		})
+	}
 	return &Notifier{
-		ws: ws,
+		defaults: defaults,
+		ws:       ws,
 		formatter: &log.TextFormatter{
 			DisableTimestamp: true,
 		},
 	}
+}
+
+func (n *Notifier) Default() []*database.Notify {
+	return n.defaults
 }
 
 func (n *Notifier) Send(e *log.Entry, to *database.Notify) bool {

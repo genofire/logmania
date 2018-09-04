@@ -12,14 +12,19 @@ type NotifyConfig struct {
 	AlertCheck Duration `toml:"alert_check"`
 	Console    bool     `toml:"debug"`
 	XMPP       struct {
-		JID      string `toml:"jid"`
-		Password string `toml:"password"`
+		JID      string          `toml:"jid"`
+		Password string          `toml:"password"`
+		Defaults map[string]bool `toml:"default"`
 	} `toml:"xmpp"`
 	Websocket struct {
 		Address string `toml:"address"`
 		Webroot string `toml:"webroot"`
+		Default string `toml:"default"`
 	} `toml:"websocket"`
-	FileDirectory string `toml:"file_directory"`
+	File struct {
+		Directory string `toml:"directory"`
+		Default   string `toml:"default"`
+	} `toml:"file"`
 }
 
 type ReceiveConfig struct {

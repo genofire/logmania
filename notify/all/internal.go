@@ -20,6 +20,7 @@ type Notifier struct {
 
 func Init(config *lib.NotifyConfig, db *database.DB, bot *bot.Bot) notify.Notifier {
 	var list []notify.Notifier
+	var defaults []*database.Notify
 	for _, init := range notify.NotifyRegister {
 		notify := init(config, db, bot)
 
@@ -27,7 +28,14 @@ func Init(config *lib.NotifyConfig, db *database.DB, bot *bot.Bot) notify.Notifi
 			continue
 		}
 		list = append(list, notify)
+		def := notify.Default()
+		if def != nil {
+			continue
+		}
+		defaults = append(defaults, def...)
 	}
+
+	db.DefaultNotify = defaults
 
 	n := &Notifier{
 		db:            db,
@@ -50,7 +58,7 @@ func (n *Notifier) sender() {
 				}
 			}
 			if !send {
-				logger.Warnf("notify not send to anybody: [%s] %s", c.Level.String(), c.Message)
+				logger.Warnf("notify not send to %s: [%s] %s", to.Address(), c.Level.String(), c.Message)
 			}
 		}
 	}
