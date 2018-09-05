@@ -143,7 +143,13 @@ func Init(configInterface interface{}, db *database.DB, bot *bot.Bot) output.Out
 
 	logger.WithField("jid", config.JID).Info("startup")
 
-	var defaults []*database.Notify
+	out := &Output{
+		channels: channels,
+		client:   client,
+		formatter: &log.TextFormatter{
+			DisableTimestamp: true,
+		},
+	}
 	for to, muc := range config.Defaults {
 		def := &database.Notify{
 			Protocol: proto,
@@ -152,16 +158,9 @@ func Init(configInterface interface{}, db *database.DB, bot *bot.Bot) output.Out
 		if muc {
 			def.Protocol = protoGroup
 		}
-		defaults = append(defaults, def)
+		out.defaults = append(out.defaults, def)
 	}
-	return &Output{
-		channels: channels,
-		defaults: defaults,
-		client:   client,
-		formatter: &log.TextFormatter{
-			DisableTimestamp: true,
-		},
-	}
+	return out
 }
 
 func (out *Output) Default() []*database.Notify {

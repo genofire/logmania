@@ -27,7 +27,7 @@ func Init(config interface{}, exportChannel chan *log.Entry) input.Input {
 
 	http.HandleFunc("/input/"+inputType, ws.Handler)
 
-	input := &Input{
+	in := &Input{
 		input:         inputMsg,
 		serverSocket:  ws,
 		exportChannel: exportChannel,
@@ -35,7 +35,7 @@ func Init(config interface{}, exportChannel chan *log.Entry) input.Input {
 
 	logger.Info("init")
 
-	return input
+	return in
 }
 
 func (in *Input) Listen() {

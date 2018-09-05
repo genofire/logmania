@@ -21,7 +21,7 @@ func Init(configInterface interface{}, db *database.DB, bot *bot.Bot) output.Out
 	config := configInterface.(map[string]interface{})
 
 	var list []output.Output
-	var defaults []*database.Notify
+
 	for outputType, init := range output.Register {
 		configForItem := config[outputType]
 		if configForItem == nil {
@@ -35,13 +35,11 @@ func Init(configInterface interface{}, db *database.DB, bot *bot.Bot) output.Out
 		}
 		list = append(list, notify)
 		def := notify.Default()
-		if def != nil {
+		if def == nil {
 			continue
 		}
-		defaults = append(defaults, def...)
+		db.DefaultNotify = append(db.DefaultNotify, def...)
 	}
-
-	db.DefaultNotify = defaults
 
 	out := &Output{
 		db:            db,

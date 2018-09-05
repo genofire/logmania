@@ -66,7 +66,7 @@ var serverCmd = &cobra.Command{
 			go db.Alert(config.AlertCheck.Duration, out.Send)
 		}
 
-		log.Info("starting logmania")
+		log.WithField("defaults", len(db.DefaultNotify)).Info("starting logmania")
 
 		if config.HTTPAddress != "" {
 			if config.Webroot != "" {

@@ -89,6 +89,7 @@ func (db *DB) NewHost(addr string) *Host {
 	h := &Host{
 		Address:           addr,
 		NotifiesByAddress: make(map[string]*Notify),
+		Lastseen:          time.Now(),
 	}
 	db.AddHost(h)
 	return h

@@ -18,15 +18,15 @@ func Init(configInterface interface{}, exportChannel chan *log.Entry) input.Inpu
 	for inputType, init := range input.Register {
 		configForItem := config[inputType]
 		if configForItem == nil {
-			log.Warnf("the input type '%s' has no configuration\n", inputType)
+			log.Warnf("the input type '%s' has no configuration", inputType)
 			continue
 		}
-		input := init(configForItem, exportChannel)
+		in := init(configForItem, exportChannel)
 
-		if input == nil {
+		if in == nil {
 			continue
 		}
-		list = append(list, input)
+		list = append(list, in)
 	}
 	return &Input{
 		list: list,

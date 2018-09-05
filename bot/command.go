@@ -166,14 +166,14 @@ func (b *Bot) listMaxfilter(answer func(string), from string, params []string) {
 		if len(params) > 0 {
 			of = params[0]
 		}
-		if filter, ok := b.db.NotifiesByAddress[of]; ok {
-			msg = fmt.Sprintf("%s of %s is %s", msg, of, filter)
+		if notify, ok := b.db.NotifiesByAddress[of]; ok {
+			msg = fmt.Sprintf("%s %s is %s", msg, of, notify.MaxPrioIn.String())
 		}
 	}
 	answer(msg)
 }
 
-// set a filter to a mix
+// set a filter to a max
 func (b *Bot) setMaxfilter(answer func(string), from string, params []string) {
 	if len(params) < 1 {
 		answer("invalid: CMD Priority\n or\n CMD Channel Priority")

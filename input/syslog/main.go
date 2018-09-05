@@ -37,14 +37,14 @@ func Init(configInterface interface{}, exportChannel chan *log.Entry) input.Inpu
 		logger.Error("init ", err)
 		return nil
 	}
-	input := &Input{
+	in := &Input{
 		serverSocket:  ln,
 		exportChannel: exportChannel,
 	}
 
 	logger.Info("init")
 
-	return input
+	return in
 }
 
 const maxDataGramSize = 8192
