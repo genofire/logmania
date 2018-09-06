@@ -47,6 +47,9 @@ var serverCmd = &cobra.Command{
 		if config == nil || err != nil {
 			log.Panicf("Could not load '%s' for configuration.", configPath)
 		}
+		if config.Debug {
+			log.SetLevel(log.DebugLevel)
+		}
 
 		db = database.ReadDBFile(config.DB)
 		go func() { dbSaveWorker = file.NewSaveJSONWorker(time.Minute, config.DB, db) }()
@@ -123,6 +126,11 @@ func reload() {
 	if err != nil {
 		log.Errorf("reload: could not load '%s' for new configuration. Skip reload.", configPath)
 		return
+	}
+	if config.Debug {
+		log.SetLevel(log.DebugLevel)
+	} else {
+		log.SetLevel(log.InfoLevel)
 	}
 	in.Close()
 	in = allInput.Init(config.Input, logChannel)
