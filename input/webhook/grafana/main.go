@@ -51,14 +51,20 @@ func handler(_ http.Header, body interface{}) *log.Entry {
 	}
 
 	entry := log.NewEntry(nil)
-	entry = entry.WithField("hostname", request.RuleURL)
+	entry = entry.WithFields(map[string]interface{}{
+		"hostname": request.RuleURL,
+		"ruleid":   request.RuleID,
+		"url":      request.RuleURL,
+	})
+	if request.ImageURL != "" {
+		entry = entry.WithField("imageurl", request.ImageURL)
+	}
 	entry.Time = time.Now()
 	entry.Level = HookstateMap[request.State]
-	if request.Message == "" {
-		entry.Message = fmt.Sprintf("%s - %s: %s", request.Title, request.State, request.RuleURL)
-	} else {
-		entry.Message = fmt.Sprintf("%s - %s: %s %s", request.Title, request.State, request.Message, request.RuleURL)
+	for _, e := range request.EvalMatches {
+		entry = entry.WithField(e.Metric, e.Value)
 	}
+	entry.Message = fmt.Sprintf("%s: %s", request.Title, request.Message)
 	return entry
 }
 
