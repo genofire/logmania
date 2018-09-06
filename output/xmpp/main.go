@@ -6,6 +6,7 @@ import (
 	xmpp_client "dev.sum7.eu/genofire/yaja/client"
 	xmpp "dev.sum7.eu/genofire/yaja/xmpp"
 	"dev.sum7.eu/genofire/yaja/xmpp/base"
+	"dev.sum7.eu/genofire/yaja/xmpp/x/muc"
 	"github.com/mitchellh/mapstructure"
 	log "github.com/sirupsen/logrus"
 
@@ -19,6 +20,8 @@ const (
 	protoGroup = "xmpp-muc"
 	nickname   = "logmania"
 )
+
+var historyMaxChars = 0
 
 var logger = log.WithField("output", proto)
 
@@ -44,7 +47,13 @@ func Init(configInterface interface{}, db *database.DB, bot *bot.Bot) output.Out
 	}
 	channels := make(map[string]bool)
 
-	client, err := xmpp_client.NewClient(xmppbase.NewJID(config.JID), config.Password)
+	jid := xmppbase.NewJID(config.JID)
+	client := &xmpp_client.Client{
+		JID:     jid,
+		Logging: logger.WithField("jid", jid.String()),
+	}
+	err := client.Connect(config.Password)
+
 	if err != nil {
 		logger.Error(err)
 		return nil
@@ -132,6 +141,11 @@ func Init(configInterface interface{}, db *database.DB, bot *bot.Bot) output.Out
 			toJID.Resource = nickname
 			err := client.Send(&xmpp.PresenceClient{
 				To: toJID,
+				MUC: &xmuc.Base{
+					History: &xmuc.History{
+						MaxChars: &historyMaxChars,
+					},
+				},
 			})
 			if err != nil {
 				logger.Error("xmpp could not join ", toJID.String(), " error:", err)
@@ -180,6 +194,11 @@ func (out *Output) Send(e *log.Entry, to *database.Notify) bool {
 			toJID.Resource = nickname
 			err := out.client.Send(&xmpp.PresenceClient{
 				To: toJID,
+				MUC: &xmuc.Base{
+					History: &xmuc.History{
+						MaxChars: &historyMaxChars,
+					},
+				},
 			})
 			if err != nil {
 				logger.Error("xmpp could not join ", toJID.String(), " error:", err)
