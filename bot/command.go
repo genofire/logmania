@@ -34,9 +34,17 @@ func (b *Bot) addSend(answer func(string), from string, params []string) {
 	if h == nil {
 		h = b.db.NewHost(host)
 	}
+	if h == nil {
+		answer(fmt.Sprintf("could not create host %s", host))
+		return
+	}
 	n, ok := b.db.NotifiesByAddress[to]
 	if !ok {
 		n = b.db.NewNotify(to)
+	}
+	if n == nil {
+		answer(fmt.Sprintf("could not create notify %s in list of %s", to, host))
+		return
 	}
 	h.AddNotify(n)
 

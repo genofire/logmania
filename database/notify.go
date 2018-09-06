@@ -86,6 +86,9 @@ func (db *DB) AddNotify(n *Notify) {
 
 func (db *DB) NewNotify(to string) *Notify {
 	addr := strings.Split(to, ":")
+	if len(addr) != 2 {
+		return nil
+	}
 	n := &Notify{
 		Protocol: addr[0],
 		To:       addr[1],
