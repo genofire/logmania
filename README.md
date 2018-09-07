@@ -4,3 +4,30 @@
 [![Coverage Status](https://coveralls.io/repos/github/genofire/logmania/badge.svg?branch=master)](https://coveralls.io/github/genofire/logmania?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/dev.sum7.eu/genofire/logmania)](https://goreportcard.com/report/dev.sum7.eu/genofire/logmania)
 [![GoDoc](https://godoc.org/dev.sum7.eu/genofire/logmania?status.svg)](https://godoc.org/dev.sum7.eu/genofire/logmania)
+
+
+This is a little logging server.
+
+## input
+It receive logs (events) by:
+- syslog
+- journald (with service nc)
+- logrus (WIP)
+- webhook
+  - git (github,gogs, gitea)
+  - circleci
+  - grafana
+
+## output
+And forward this logs (events) to multiple different output:
+- xmpp (client and muc)
+- file
+- websocket (WIP)
+
+there a multi filter possible
+- regex
+- priority
+
+it could replace text by regex expression
+
+configuration live possible by bot (on input e.g. xmpp)

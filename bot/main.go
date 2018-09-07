@@ -42,7 +42,7 @@ func NewBot(db *database.DB) *Bot {
 
 func (b *Bot) Handle(answer func(string), from, msg string) {
 	msgParts := strings.Split(msg, " ")
-	if len(msgParts[0]) <= 0 || msgParts[0][0] != '!' {
+	if len(msgParts[0]) <= 0 || msgParts[0][0] != '.' {
 		return
 	}
 	cmdName := msgParts[0][1:]

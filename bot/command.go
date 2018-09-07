@@ -13,7 +13,7 @@ type commandFunc func(func(string), string, []string)
 func (b *Bot) help(answer func(string), from string, params []string) {
 	msg := fmt.Sprintf("Hi %s there are the following commands:\n", from)
 	for _, cmd := range b.commands {
-		msg = fmt.Sprintf("%s - !%s\n", msg, cmd)
+		msg = fmt.Sprintf("%s - .%s\n", msg, cmd)
 	}
 	answer(msg)
 }
