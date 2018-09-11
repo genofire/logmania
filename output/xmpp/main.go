@@ -135,25 +135,6 @@ func Init(configInterface interface{}, db *database.DB, bot *bot.Bot) output.Out
 			}
 		}
 	}()
-	for toAddr, toAddresses := range db.NotifiesByAddress {
-		if toAddresses.Protocol == protoGroup {
-			toJID := xmppbase.NewJID(toAddresses.To)
-			toJID.Resource = nickname
-			err := client.Send(&xmpp.PresenceClient{
-				To: toJID,
-				MUC: &xmuc.Base{
-					History: &xmuc.History{
-						MaxChars: &historyMaxChars,
-					},
-				},
-			})
-			if err != nil {
-				logger.Error("xmpp could not join ", toJID.String(), " error:", err)
-			} else {
-				channels[toAddr] = true
-			}
-		}
-	}
 
 	logger.WithField("jid", config.JID).Info("startup")
 
@@ -164,6 +145,7 @@ func Init(configInterface interface{}, db *database.DB, bot *bot.Bot) output.Out
 			DisableTimestamp: true,
 		},
 	}
+
 	for to, muc := range config.Defaults {
 		def := &database.Notify{
 			Protocol: proto,
@@ -171,10 +153,34 @@ func Init(configInterface interface{}, db *database.DB, bot *bot.Bot) output.Out
 		}
 		if muc {
 			def.Protocol = protoGroup
+			out.Join(to)
 		}
 		out.defaults = append(out.defaults, def)
 	}
+	for _, toAddresses := range db.NotifiesByAddress {
+		if toAddresses.Protocol == protoGroup {
+			out.Join(toAddresses.To)
+		}
+	}
 	return out
+}
+
+func (out *Output) Join(to string) {
+	toJID := xmppbase.NewJID(to)
+	toJID.Resource = nickname
+	err := out.client.Send(&xmpp.PresenceClient{
+		To: toJID,
+		MUC: &xmuc.Base{
+			History: &xmuc.History{
+				MaxChars: &historyMaxChars,
+			},
+		},
+	})
+	if err != nil {
+		logger.Error("xmpp could not join ", toJID.String(), " error:", err)
+	} else {
+		out.channels[to] = true
+	}
 }
 
 func (out *Output) Default() []*database.Notify {
