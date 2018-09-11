@@ -1,6 +1,7 @@
 package xmpp
 
 import (
+	"regexp"
 	"strings"
 
 	xmpp_client "dev.sum7.eu/genofire/yaja/client"
@@ -148,8 +149,10 @@ func Init(configInterface interface{}, db *database.DB, bot *bot.Bot) output.Out
 
 	for to, muc := range config.Defaults {
 		def := &database.Notify{
-			Protocol: proto,
-			To:       to,
+			Protocol:  proto,
+			To:        to,
+			RegexIn:   make(map[string]*regexp.Regexp),
+			MaxPrioIn: log.DebugLevel,
 		}
 		if muc {
 			def.Protocol = protoGroup

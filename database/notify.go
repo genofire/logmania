@@ -90,9 +90,10 @@ func (db *DB) NewNotify(to string) *Notify {
 		return nil
 	}
 	n := &Notify{
-		Protocol: addr[0],
-		To:       addr[1],
-		RegexIn:  make(map[string]*regexp.Regexp),
+		Protocol:  addr[0],
+		To:        addr[1],
+		RegexIn:   make(map[string]*regexp.Regexp),
+		MaxPrioIn: log.DebugLevel,
 	}
 	db.AddNotify(n)
 	return n

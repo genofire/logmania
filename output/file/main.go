@@ -46,8 +46,10 @@ func Init(configInterface interface{}, db *database.DB, bot *bot.Bot) output.Out
 	var defaults []*database.Notify
 	if config.Default != "" {
 		defaults = append(defaults, &database.Notify{
-			Protocol: proto,
-			To:       config.Default,
+			Protocol:  proto,
+			To:        config.Default,
+			RegexIn:   make(map[string]*regexp.Regexp),
+			MaxPrioIn: log.DebugLevel,
 		})
 	}
 
