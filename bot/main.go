@@ -1,54 +1,36 @@
 package bot
 
 import (
-	"fmt"
-	"strings"
+	"github.com/mattn/go-shellwords"
 
 	"dev.sum7.eu/genofire/logmania/database"
 )
 
 type Bot struct {
-	db          *database.DB
-	commandsMap map[string]commandFunc
-	commands    []string
+	Command
 }
 
 func NewBot(db *database.DB) *Bot {
-	b := &Bot{
-		db: db,
-	}
-	b.commandsMap = map[string]commandFunc{
-		"help":          b.help,
-		"send-add":      b.addSend,
-		"send-list":     b.listSend,
-		"send-del":      b.delSend,
-		"hostname-set":  b.addHostname,
-		"hostname-list": b.listHostname,
-		"hostname-del":  b.delHostname,
-		"filter-set":    b.setMaxfilter,
-		"filter-list":   b.listMaxfilter,
-		"regex-add":     b.addRegex,
-		"regex-list":    b.listRegex,
-		"regex-del":     b.delRegex,
-		"replace-add":   b.addRegexReplace,
-		"replace-list":  b.listRegexReplace,
-		"replace-del":   b.delRegexReplace,
-	}
-	for k := range b.commandsMap {
-		b.commands = append(b.commands, k)
-	}
-	return b
+	return &Bot{Command{
+		Description: "logmania bot, to configurate live all settings",
+		Commands: []*Command{
+			NewFilter(db),
+			NewHostname(db),
+			NewPriority(db),
+			NewReplace(db),
+			NewSend(db),
+		},
+	}}
 }
 
-func (b *Bot) Handle(answer func(string), from, msg string) {
-	msgParts := strings.Split(msg, " ")
-	if len(msgParts[0]) <= 0 || msgParts[0][0] != '.' {
-		return
+func (b *Bot) Handle(from, msg string) string {
+	msgParts, err := shellwords.Parse(msg)
+	if err != nil {
+		return ""
 	}
-	cmdName := msgParts[0][1:]
-	if cmd, ok := b.commandsMap[cmdName]; ok {
-		cmd(answer, from, msgParts[1:])
-	} else {
-		answer(fmt.Sprintf("not found command: !%s", cmdName))
+	if len(msgParts) <= 0 || msgParts[0][0] != '.' {
+		return ""
 	}
+	msgParts[0] = msgParts[0][1:]
+	return b.Run(from, msgParts)
 }

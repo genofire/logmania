@@ -47,9 +47,10 @@ func Init(configInterface interface{}, db *database.DB, bot *bot.Bot) output.Out
 				logger.Warnf("receive unknown websocket message: %s", msg.Subject)
 				continue
 			}
-			bot.Handle(func(answer string) {
+			answer := bot.Handle("", msg.Body.(string))
+			if answer != "" {
 				msg.Answer("bot", answer)
-			}, "", msg.Body.(string))
+			}
 		}
 	}()
 

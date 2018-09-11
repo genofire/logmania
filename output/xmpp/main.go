@@ -119,20 +119,22 @@ func Init(configInterface interface{}, db *database.DB, bot *bot.Bot) output.Out
 					from = proto + ":" + from
 				}
 
-				bot.Handle(func(answer string) {
-					to := msg.From
-					if msg.Type == xmpp.MessageTypeGroupchat && !to.IsBare() {
-						to = to.Bare()
-					}
-					err := client.Send(&xmpp.MessageClient{
-						Type: msg.Type,
-						To:   to,
-						Body: answer,
-					})
-					if err != nil {
-						logger.Error("xmpp to ", msg.From.String(), " error:", err)
-					}
-				}, from, msg.Body)
+				answer := bot.Handle(from, msg.Body)
+				if answer == "" {
+					continue
+				}
+				to := msg.From
+				if msg.Type == xmpp.MessageTypeGroupchat && !to.IsBare() {
+					to = to.Bare()
+				}
+				err := client.Send(&xmpp.MessageClient{
+					Type: msg.Type,
+					To:   to,
+					Body: answer,
+				})
+				if err != nil {
+					logger.Error("xmpp to ", msg.From.String(), " error:", err)
+				}
 			}
 		}
 	}()
