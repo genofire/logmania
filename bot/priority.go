@@ -13,7 +13,7 @@ func NewPriority(db *database.DB) *Command {
 		Name:        "priority",
 		Description: "list and configurate priority in channel",
 		Commands: []*Command{
-			&Command{
+			{
 				Name:        "set",
 				Description: "set max priority of channel: [channel] Priority",
 				Action: func(from string, params []string) string {
@@ -43,7 +43,7 @@ func NewPriority(db *database.DB) *Command {
 					return fmt.Sprintf("set filter for %s to %s", to, max.String())
 				},
 			},
-			&Command{
+			{
 				Name:        "all",
 				Description: "list of all channels",
 				Action: func(from string, params []string) string {
@@ -54,7 +54,7 @@ func NewPriority(db *database.DB) *Command {
 					return msg
 				},
 			},
-			&Command{
+			{
 				Name:        "channel",
 				Description: "list of given channel: channel",
 				Action: func(from string, params []string) string {

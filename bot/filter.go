@@ -11,7 +11,7 @@ func NewFilter(db *database.DB) *Command {
 		Name:        "filter",
 		Description: "list and configurate regex filter for channel by message content",
 		Commands: []*Command{
-			&Command{
+			{
 				Name:        "add",
 				Description: "add regex filter for channel:  [channel] regex",
 				Action: func(from string, params []string) string {
@@ -32,7 +32,7 @@ func NewFilter(db *database.DB) *Command {
 					return fmt.Sprintf("add regex for \"%s\" to %s", of, regex)
 				},
 			},
-			&Command{
+			{
 				Name:        "del",
 				Description: "del regex filter for channel:  [channel] regex",
 				Action: func(from string, params []string) string {
@@ -50,7 +50,7 @@ func NewFilter(db *database.DB) *Command {
 					return "deleted"
 				},
 			},
-			&Command{
+			{
 				Name:        "all",
 				Description: "list of all channels",
 				Action: func(from string, params []string) string {
@@ -64,7 +64,7 @@ func NewFilter(db *database.DB) *Command {
 					return msg
 				},
 			},
-			&Command{
+			{
 				Name:        "channel",
 				Description: "list of given channel: channel",
 				Action: func(from string, params []string) string {

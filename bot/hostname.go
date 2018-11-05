@@ -12,7 +12,7 @@ func NewHostname(db *database.DB) *Command {
 		Name:        "hostname",
 		Description: "alternative short (host)names for long IP-Addresses or URLs (and time of last recieved input)",
 		Commands: []*Command{
-			&Command{
+			{
 				Name:        "set",
 				Description: "set or replace a hostname: IPAddress/Hostname NewHostname",
 				Action: func(from string, params []string) string {
@@ -31,7 +31,7 @@ func NewHostname(db *database.DB) *Command {
 					return fmt.Sprintf("set for %s the hostname %s", addr, name)
 				},
 			},
-			&Command{
+			{
 				Name:        "del",
 				Description: "delete a hostname: IPAddress/Hostname",
 				Action: func(from string, params []string) string {

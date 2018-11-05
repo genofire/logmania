@@ -1,0 +1,34 @@
+image: golang:latest
+stages:
+  - build
+  - test
+
+before_script:
+  - mkdir -p /go/src/git.sum7.eu/genofire/
+  - cp -R /builds/genofire/logmania /go/src/git.sum7.eu/genofire/logmania
+  - cd /go/src/git.sum7.eu/genofire/logmania
+  - go get -d -t ./...
+
+build-my-project:
+  stage: build
+  script:
+    - go install git.sum7.eu/genofire/logmania
+  artifacts:
+    paths:
+      - /go/bin/logmania
+
+test-my-project:
+  stage: test
+  script:
+    - ./.ci/check-gofmt
+    - ./.ci/check-testfiles
+    - ./.ci/check-misspell
+    - go test $(go list ./... | grep -v /vendor/) -v -coverprofile .testCoverage.txt
+  artifacts:
+    paths:
+     - .testCoverage.txt
+
+test-race-my-project:
+  stage: test
+  script:
+    - go test -race ./...

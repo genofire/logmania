@@ -11,7 +11,7 @@ func NewReplace(db *database.DB) *Command {
 		Name:        "replace",
 		Description: "list and configurate replace content of message for channel",
 		Commands: []*Command{
-			&Command{
+			{
 				Name:        "add",
 				Description: "add regex replace for channel:  [channel] regex replace",
 				Action: func(from string, params []string) string {
@@ -34,7 +34,7 @@ func NewReplace(db *database.DB) *Command {
 					return fmt.Sprintf("add replace in \"%s\" for \"%s\" to \"%s\"", of, regex, value)
 				},
 			},
-			&Command{
+			{
 				Name:        "del",
 				Description: "del regex replace for channel:  [channel] regex replace",
 				Action: func(from string, params []string) string {
@@ -54,7 +54,7 @@ func NewReplace(db *database.DB) *Command {
 				},
 			},
 
-			&Command{
+			{
 				Name:        "all",
 				Description: "list of all channels",
 				Action: func(from string, params []string) string {
@@ -68,7 +68,7 @@ func NewReplace(db *database.DB) *Command {
 					return msg
 				},
 			},
-			&Command{
+			{
 				Name:        "channel",
 				Description: "list of given channel: channel",
 				Action: func(from string, params []string) string {

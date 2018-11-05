@@ -11,7 +11,7 @@ func NewSend(db *database.DB) *Command {
 		Name:        "send",
 		Description: "list and configurate destination for hostnames",
 		Commands: []*Command{
-			&Command{
+			{
 				Name:        "add",
 				Description: "add a destination for host with: IPAddress/Hostname [to]",
 				Action: func(from string, params []string) string {
@@ -43,7 +43,7 @@ func NewSend(db *database.DB) *Command {
 					return fmt.Sprintf("added %s in list of %s", to, host)
 				},
 			},
-			&Command{
+			{
 				Name:        "del",
 				Description: "del a destination for host with: IPAddress/Hostname [to]",
 				Action: func(from string, params []string) string {
@@ -63,7 +63,7 @@ func NewSend(db *database.DB) *Command {
 					return "not found host"
 				},
 			},
-			&Command{
+			{
 				Name:        "all",
 				Description: "list of all hosts with there channels",
 				Action: func(from string, params []string) string {
@@ -85,7 +85,7 @@ func NewSend(db *database.DB) *Command {
 					return msg
 				},
 			},
-			&Command{
+			{
 				Name:        "channel",
 				Description: "list all host of given channel: channel",
 				Action: func(from string, params []string) string {
