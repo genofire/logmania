@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/bdlm/log"
 )
 
 func TestToEntry(t *testing.T) {

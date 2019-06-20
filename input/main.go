@@ -1,7 +1,7 @@
 package input
 
 import (
-	log "github.com/sirupsen/logrus"
+	"github.com/bdlm/log"
 )
 
 var Register = make(map[string]Init)

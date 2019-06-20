@@ -8,8 +8,8 @@ import (
 	xmpp "dev.sum7.eu/genofire/yaja/xmpp"
 	"dev.sum7.eu/genofire/yaja/xmpp/base"
 	"dev.sum7.eu/genofire/yaja/xmpp/x/muc"
+	"github.com/bdlm/log"
 	"github.com/mitchellh/mapstructure"
-	log "github.com/sirupsen/logrus"
 
 	"dev.sum7.eu/genofire/logmania/bot"
 	"dev.sum7.eu/genofire/logmania/database"
@@ -49,11 +49,7 @@ func Init(configInterface interface{}, db *database.DB, bot *bot.Bot) output.Out
 	channels := make(map[string]bool)
 
 	jid := xmppbase.NewJID(config.JID)
-	client := &xmpp_client.Client{
-		JID:     jid,
-		Logging: logger.WithField("jid", jid.String()),
-	}
-	err := client.Connect(config.Password)
+	client, err := xmpp_client.NewClient(jid, config.Password)
 
 	if err != nil {
 		logger.Error(err)

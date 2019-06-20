@@ -4,7 +4,8 @@ import (
 	"regexp"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/bdlm/log"
+	logstd "github.com/bdlm/std/logger"
 )
 
 const AlertMsg = "alert service from logmania, device did not send new message for a while"
@@ -13,7 +14,7 @@ type DB struct {
 	// depraced Format -> transformation to new format by db.update()
 	Hostname       map[string]string                    `json:"hostname,omitempty"`
 	HostTo         map[string]map[string]bool           `json:"host_to,omitempty"`
-	MaxPrioIn      map[string]log.Level                 `json:"maxLevel,omitempty"`
+	MaxPrioIn      map[string]logstd.Level              `json:"maxLevel,omitempty"`
 	RegexIn        map[string]map[string]*regexp.Regexp `json:"regexIn,omitempty"`
 	Lastseen       map[string]time.Time                 `json:"lastseen,omitempty"`
 	LastseenNotify map[string]time.Time                 `json:"-"`

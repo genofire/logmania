@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"strconv"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/bdlm/log"
+	logstd "github.com/bdlm/std/logger"
 )
 
 type JournalMessage struct {
@@ -34,7 +35,7 @@ type JournalMessage struct {
 	Message   string `json:"MESSAGE"`
 }
 
-var PriorityMap = map[int]log.Level{
+var PriorityMap = map[int]logstd.Level{
 	0: log.PanicLevel, // emerg
 	1: log.PanicLevel, // alert
 	2: log.PanicLevel, // crit

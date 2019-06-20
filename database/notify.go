@@ -4,7 +4,8 @@ import (
 	"regexp"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/bdlm/log"
+	logstd "github.com/bdlm/std/logger"
 )
 
 type Notify struct {
@@ -12,7 +13,7 @@ type Notify struct {
 	To                     string                    `json:"to"`
 	RegexIn                map[string]*regexp.Regexp `json:"regexIn"`
 	RegexReplace           map[string]string         `json:"regexReplace"`
-	MaxPrioIn              log.Level                 `json:"maxLevel"`
+	MaxPrioIn              logstd.Level              `json:"maxLevel"`
 	regexReplaceExpression map[string]*regexp.Regexp
 }
 

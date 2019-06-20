@@ -1,7 +1,7 @@
 package all
 
 import (
-	log "github.com/sirupsen/logrus"
+	"github.com/bdlm/log"
 
 	"dev.sum7.eu/genofire/logmania/bot"
 	"dev.sum7.eu/genofire/logmania/database"
@@ -62,7 +62,7 @@ func (out *Output) sender() {
 				}
 			}
 			if !send {
-				logger.Warnf("notify not send to %s: [%s] %s", to.Address(), c.Level.String(), c.Message)
+				logger.Warnf("notify not send to %s: [%s] %s", to.Address(), c.Level, c.Message)
 			}
 		}
 	}

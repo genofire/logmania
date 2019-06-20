@@ -3,8 +3,8 @@ package journald_json
 import (
 	"net"
 
+	"github.com/bdlm/log"
 	"github.com/mitchellh/mapstructure"
-	log "github.com/sirupsen/logrus"
 
 	"dev.sum7.eu/genofire/logmania/input"
 )

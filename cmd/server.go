@@ -6,7 +6,7 @@ import (
 	"syscall"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/bdlm/log"
 	"github.com/spf13/cobra"
 
 	"dev.sum7.eu/genofire/golang-lib/file"

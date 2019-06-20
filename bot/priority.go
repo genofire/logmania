@@ -3,7 +3,8 @@ package bot
 import (
 	"fmt"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/bdlm/log"
+	logstd "github.com/bdlm/std/logger"
 
 	"dev.sum7.eu/genofire/logmania/database"
 )
@@ -21,7 +22,7 @@ func NewPriority(db *database.DB) *Command {
 						return "invalid: [channel] Priority"
 					}
 					to := from
-					var max log.Level
+					var max logstd.Level
 					var err error
 
 					if len(params) > 1 {
@@ -40,7 +41,7 @@ func NewPriority(db *database.DB) *Command {
 
 					n.MaxPrioIn = max
 
-					return fmt.Sprintf("set filter for %s to %s", to, max.String())
+					return fmt.Sprintf("set filter for %s to %s", to, max)
 				},
 			},
 			{
@@ -49,7 +50,7 @@ func NewPriority(db *database.DB) *Command {
 				Action: func(from string, params []string) string {
 					msg := "priority: \n"
 					for _, n := range db.Notifies {
-						msg = fmt.Sprintf("%s%s - %s\n", msg, n.Address(), n.MaxPrioIn.String())
+						msg = fmt.Sprintf("%s%s - %s\n", msg, n.Address(), n.MaxPrioIn)
 					}
 					return msg
 				},
@@ -64,7 +65,7 @@ func NewPriority(db *database.DB) *Command {
 					of := params[0]
 					msg := "priority: \n"
 					if notify, ok := db.NotifiesByAddress[of]; ok {
-						msg = fmt.Sprintf("%s %s is %s", msg, of, notify.MaxPrioIn.String())
+						msg = fmt.Sprintf("%s %s is %s", msg, of, notify.MaxPrioIn)
 					}
 					return msg
 				},
@@ -73,7 +74,7 @@ func NewPriority(db *database.DB) *Command {
 		Action: func(from string, params []string) string {
 			msg := "priority: \n"
 			if notify, ok := db.NotifiesByAddress[from]; ok {
-				msg = fmt.Sprintf("%s %s is %s", msg, from, notify.MaxPrioIn.String())
+				msg = fmt.Sprintf("%s %s is %s", msg, from, notify.MaxPrioIn)
 			}
 			return msg
 		},

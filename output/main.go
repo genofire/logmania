@@ -1,7 +1,7 @@
 package output
 
 import (
-	log "github.com/sirupsen/logrus"
+	"github.com/bdlm/log"
 
 	"dev.sum7.eu/genofire/logmania/bot"
 	"dev.sum7.eu/genofire/logmania/database"

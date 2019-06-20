@@ -5,8 +5,8 @@ import (
 	"path"
 	"regexp"
 
+	"github.com/bdlm/log"
 	"github.com/mitchellh/mapstructure"
-	log "github.com/sirupsen/logrus"
 
 	"dev.sum7.eu/genofire/logmania/bot"
 	"dev.sum7.eu/genofire/logmania/database"

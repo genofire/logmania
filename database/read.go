@@ -2,7 +2,7 @@ package database
 
 import (
 	"dev.sum7.eu/genofire/golang-lib/file"
-	log "github.com/sirupsen/logrus"
+	"github.com/bdlm/log"
 )
 
 func ReadDBFile(path string) *DB {

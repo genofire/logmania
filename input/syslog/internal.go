@@ -1,12 +1,13 @@
 package syslog
 
 import (
-	log "github.com/sirupsen/logrus"
+	"github.com/bdlm/log"
+	logstd "github.com/bdlm/std/logger"
 
 	libSyslog "dev.sum7.eu/genofire/logmania/lib/syslog"
 )
 
-var SyslogPriorityMap = map[int]log.Level{
+var SyslogPriorityMap = map[int]logstd.Level{
 	0: log.PanicLevel,
 	1: log.PanicLevel,
 	2: log.PanicLevel,
