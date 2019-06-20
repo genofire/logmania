@@ -54,10 +54,12 @@ func Init(configInterface interface{}, db *database.DB, bot *bot.Bot) output.Out
 	}
 
 	return &Output{
-		defaults:  defaults,
-		files:     make(map[string]*os.File),
-		formatter: &log.JSONFormatter{},
-		path:      config.Directory,
+		defaults: defaults,
+		files:    make(map[string]*os.File),
+		formatter: &log.JSONFormatter{
+			DisableCaller: true,
+		},
+		path: config.Directory,
 	}
 }
 

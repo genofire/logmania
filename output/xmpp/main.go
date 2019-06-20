@@ -141,6 +141,7 @@ func Init(configInterface interface{}, db *database.DB, bot *bot.Bot) output.Out
 		channels: channels,
 		client:   client,
 		formatter: &log.TextFormatter{
+			DisableCaller:    true,
 			DisableTimestamp: true,
 		},
 	}
