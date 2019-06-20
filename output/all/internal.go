@@ -62,7 +62,7 @@ func (out *Output) sender() {
 				}
 			}
 			if !send {
-				logger.Warnf("notify not send to %s: [%s] %s", to.Address(), c.Level, c.Message)
+				logger.Warnf("notify not send to %s: [%d] %s", to.Address(), c.Level, c.Message)
 			}
 		}
 	}

@@ -41,7 +41,7 @@ func NewPriority(db *database.DB) *Command {
 
 					n.MaxPrioIn = max
 
-					return fmt.Sprintf("set filter for %s to %s", to, max)
+					return fmt.Sprintf("set filter for %s to %d", to, max)
 				},
 			},
 			{
@@ -50,7 +50,7 @@ func NewPriority(db *database.DB) *Command {
 				Action: func(from string, params []string) string {
 					msg := "priority: \n"
 					for _, n := range db.Notifies {
-						msg = fmt.Sprintf("%s%s - %s\n", msg, n.Address(), n.MaxPrioIn)
+						msg = fmt.Sprintf("%s%s - %d\n", msg, n.Address(), n.MaxPrioIn)
 					}
 					return msg
 				},
@@ -65,7 +65,7 @@ func NewPriority(db *database.DB) *Command {
 					of := params[0]
 					msg := "priority: \n"
 					if notify, ok := db.NotifiesByAddress[of]; ok {
-						msg = fmt.Sprintf("%s %s is %s", msg, of, notify.MaxPrioIn)
+						msg = fmt.Sprintf("%s %s is %d", msg, of, notify.MaxPrioIn)
 					}
 					return msg
 				},
@@ -74,7 +74,7 @@ func NewPriority(db *database.DB) *Command {
 		Action: func(from string, params []string) string {
 			msg := "priority: \n"
 			if notify, ok := db.NotifiesByAddress[from]; ok {
-				msg = fmt.Sprintf("%s %s is %s", msg, from, notify.MaxPrioIn)
+				msg = fmt.Sprintf("%s %s is %d", msg, from, notify.MaxPrioIn)
 			}
 			return msg
 		},
