@@ -10,7 +10,7 @@ import (
 func NewHostname(db *database.DB) *Command {
 	return &Command{
 		Name:        "hostname",
-		Description: "alternative short (host)names for long IP-Addresses or URLs (and time of last recieved input)",
+		Description: "alternative short (host)names for long IP-Addresses or URLs (and time of last received input)",
 		Commands: []*Command{
 			{
 				Name:        "set",

@@ -9,7 +9,7 @@ import (
 func NewReplace(db *database.DB) *Command {
 	return &Command{
 		Name:        "replace",
-		Description: "list and configurate replace content of message for channel",
+		Description: "list and configure replace content of message for channel",
 		Commands: []*Command{
 			{
 				Name:        "add",

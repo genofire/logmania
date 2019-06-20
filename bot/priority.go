@@ -12,7 +12,7 @@ import (
 func NewPriority(db *database.DB) *Command {
 	return &Command{
 		Name:        "priority",
-		Description: "list and configurate priority in channel",
+		Description: "list and configure priority in channel",
 		Commands: []*Command{
 			{
 				Name:        "set",

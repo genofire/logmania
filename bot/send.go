@@ -9,7 +9,7 @@ import (
 func NewSend(db *database.DB) *Command {
 	return &Command{
 		Name:        "send",
-		Description: "list and configurate destination for hostnames",
+		Description: "list and configure destination for hostnames",
 		Commands: []*Command{
 			{
 				Name:        "add",

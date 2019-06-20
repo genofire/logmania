@@ -12,7 +12,7 @@ type Bot struct {
 
 func NewBot(db *database.DB) *Bot {
 	return &Bot{Command{
-		Description: "logmania bot, to configurate live all settings",
+		Description: "logmania bot, to configure live all settings",
 		Commands: []*Command{
 			NewFilter(db),
 			NewHostname(db),

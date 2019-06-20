@@ -9,7 +9,7 @@ import (
 func NewFilter(db *database.DB) *Command {
 	return &Command{
 		Name:        "filter",
-		Description: "list and configurate regex filter for channel by message content",
+		Description: "list and configure regex filter for channel by message content",
 		Commands: []*Command{
 			{
 				Name:        "add",
