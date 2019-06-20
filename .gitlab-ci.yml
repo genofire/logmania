@@ -4,19 +4,21 @@ stages:
   - test
 
 before_script:
-  - mkdir -p /go/src/dev.sum7.eu/$CI_PROJECT_NAMESPACE/
-  - cp -R /builds/$CI_PROJECT_PATH /go/src/dev.sum7.eu/$CI_PROJECT_NAMESPACE/
-  - cd /go/src/dev.sum7.eu/$CI_PROJECT_PATH
+  - mkdir -p "/go/src/dev.sum7.eu/$CI_PROJECT_NAMESPACE/"
+  - cp -R "$CI_PROJECT_DIR" "/go/src/dev.sum7.eu/$CI_PROJECT_NAMESPACE/"
+  - cd "/go/src/dev.sum7.eu/$CI_PROJECT_PATH"
   - go get -d -t ./...
 
 build-my-project:
   stage: build
   script:
-    - go install dev.sum7.eu/$CI_PROJECT_PATH
-    - mv /go/bin/$CI_PROJECT_NAME /builds/$CI_PROJECT_PATH
+    - mkdir "$CI_PROJECT_DIR/bin/"
+    - go install "dev.sum7.eu/$CI_PROJECT_PATH"
+    - mv "/go/bin/$CI_PROJECT_NAME" "$CI_PROJECT_DIR/bin/$CI_PROJECT_NAME"
   artifacts:
     paths:
-      - $CI_PROJECT_NAME
+      - "bin/$CI_PROJECT_NAME"
+      - config_example.toml
 
 test-my-project:
   stage: test
@@ -26,6 +28,7 @@ test-my-project:
     - ./.ci/check-gofmt
     - ./.ci/check-testfiles
     - go test $(go list ./... | grep -v /vendor/) -v -coverprofile .testCoverage.txt
+    - go tool cover -func=.testCoverage.txt
   artifacts:
     paths:
      - .testCoverage.txt
