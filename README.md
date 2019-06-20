@@ -12,17 +12,11 @@ This is a little logging server.
 It receive logs (events) by:
 - syslog
 - journald (with service nc)
-- logrus (WIP)
-- webhook
-  - git (github,gogs, gitea)
-  - circleci
-  - grafana
 
 ## output
 And forward this logs (events) to multiple different output:
 - xmpp (client and muc)
 - file
-- websocket (WIP)
 
 there a multi filter possible
 - regex
@@ -31,3 +25,7 @@ there a multi filter possible
 it could replace text by regex expression
 
 configuration live possible by bot (on input e.g. xmpp)
+
+## Related Projects
+
+- [hook2xmpp](https://dev.sum7.eu/genofire/hook2xmpp) for e.g. grafana, alertmanager(prometheus), gitlab, git, circleci

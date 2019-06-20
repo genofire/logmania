@@ -1,13 +1,11 @@
 package cmd
 
 import (
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/NYTimes/gziphandler"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
@@ -70,22 +68,6 @@ var serverCmd = &cobra.Command{
 		}
 
 		log.WithField("defaults", len(db.DefaultNotify)).Info("starting logmania")
-
-		if config.HTTPAddress != "" {
-			if config.Webroot != "" {
-				http.Handle("/", gziphandler.GzipHandler(http.FileServer(http.Dir(config.Webroot))))
-			}
-
-			srv := &http.Server{
-				Addr: config.HTTPAddress,
-			}
-
-			go func() {
-				if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-					log.Panic(err)
-				}
-			}()
-		}
 
 		in = allInput.Init(config.Input, logChannel)
 
