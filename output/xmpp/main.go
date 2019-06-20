@@ -1,6 +1,7 @@
 package xmpp
 
 import (
+	"encoding/xml"
 	"regexp"
 	"strings"
 
@@ -56,15 +57,8 @@ func Init(configInterface interface{}, db *database.DB, bot *bot.Bot) output.Out
 		return nil
 	}
 	go func() {
-		for {
-			if err := client.Start(); err != nil {
-				log.Warn("close connection, try reconnect")
-				client.Connect(config.Password)
-			} else {
-				log.Warn("closed connection")
-				return
-			}
-		}
+		client.Start()
+		log.Panic("closed connection")
 	}()
 	go func() {
 		for {
@@ -190,12 +184,17 @@ func (out *Output) Default() []*database.Notify {
 }
 
 func (out *Output) Send(e *log.Entry, to *database.Notify) bool {
-	textByte, err := out.formatter.Format(e)
-	if err != nil {
-		logger.Error("during format notify", err)
+	html, text := formatLog(e)
+	if html == "" || text == "" {
+		logger.Error("during format notify")
 		return false
 	}
-	text := strings.TrimRight(to.RunReplace(string(textByte)), "\n")
+	html = strings.TrimRight(to.RunReplace(html), "\n")
+	var body xmpp.XMLElement
+	xml.Unmarshal([]byte(html), &body)
+
+	text = strings.TrimRight(to.RunReplace(text), "\n")
+
 	if to.Protocol == protoGroup {
 		if _, ok := out.channels[to.To]; ok {
 			toJID := xmppbase.NewJID(to.To)
@@ -214,23 +213,23 @@ func (out *Output) Send(e *log.Entry, to *database.Notify) bool {
 				out.channels[to.To] = true
 			}
 		}
-		err := out.client.Send(&xmpp.MessageClient{
+		if err := out.client.Send(&xmpp.MessageClient{
 			Type: xmpp.MessageTypeGroupchat,
 			To:   xmppbase.NewJID(to.To),
 			Body: text,
-		})
-		if err != nil {
+			HTML: &xmpp.HTML{Body: xmpp.HTMLBody{Body: body}},
+		}); err != nil {
 			logger.Error("xmpp to ", to.To, " error:", err)
 		}
 		return true
 	}
 	if to.Protocol == proto {
-		err := out.client.Send(&xmpp.MessageClient{
+		if err := out.client.Send(&xmpp.MessageClient{
 			Type: xmpp.MessageTypeChat,
 			To:   xmppbase.NewJID(to.To),
 			Body: text,
-		})
-		if err != nil {
+			HTML: &xmpp.HTML{Body: xmpp.HTMLBody{Body: body}},
+		}); err != nil {
 			logger.Error("xmpp to ", to, " error:", err)
 		}
 		return true
