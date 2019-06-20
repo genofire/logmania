@@ -34,7 +34,7 @@ Latest Build binary from ci here:
 
 [Download All](https://dev.sum7.eu/genofire/logmania/-/jobs/artifacts/master/download/?job=build-my-project) (with config example)
 
-[Download Binary](https://dev.sum7.eu/genofire/logmania/-/jobs/artifacts/master/raw/logmania?inline=false&job=build-my-project)
+[Download Binary](https://dev.sum7.eu/genofire/logmania/-/jobs/artifacts/master/raw/bin/logmania?inline=false&job=build-my-project)
 
 #### Build
 
