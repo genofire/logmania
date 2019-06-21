@@ -122,5 +122,5 @@ func formatLog(entry *log.Entry) (string, string) {
 	if err := tempLog.Execute(logLine, data); err != nil {
 		return "formating error", "formating error"
 	}
-	return logLine.String(), fmt.Sprintf("%s> %s: %s", data.Hostname, log.LevelString(entry.Level), entry.Message)
+	return logLine.String(), fmt.Sprintf("[%s] %s > %s", data.Hostname, log.LevelString(entry.Level), entry.Message)
 }
