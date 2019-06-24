@@ -3,11 +3,9 @@ package xmpp
 import (
 	"regexp"
 
-	xmpp_client "dev.sum7.eu/genofire/yaja/client"
-	xmpp "dev.sum7.eu/genofire/yaja/xmpp"
-	"dev.sum7.eu/genofire/yaja/xmpp/base"
 	"github.com/bdlm/log"
 	"github.com/mitchellh/mapstructure"
+	"gosrc.io/xmpp"
 
 	"dev.sum7.eu/genofire/logmania/bot"
 	"dev.sum7.eu/genofire/logmania/database"
@@ -20,8 +18,6 @@ const (
 	nickname   = "logmania"
 )
 
-var historyMaxChars = 0
-
 var logger = log.WithField("output", proto)
 
 type Output struct {
@@ -29,7 +25,7 @@ type Output struct {
 	defaults []*database.Notify
 	channels map[string]bool
 	bot      *bot.Bot
-	client   *xmpp_client.Client
+	client   *xmpp.Client
 	botOut   chan interface{}
 	logOut   chan interface{}
 }
@@ -47,26 +43,30 @@ func Init(configInterface interface{}, db *database.DB, bot *bot.Bot) output.Out
 		return nil
 	}
 
-	jid := xmppbase.NewJID(config.JID)
-	client, err := xmpp_client.NewClient(jid, config.Password)
+	out := &Output{
+		channels: make(map[string]bool),
+		bot:      bot,
+	}
+
+	router := xmpp.NewRouter()
+	router.HandleFunc("message", out.recvMessage)
+	router.HandleFunc("presence", out.recvPresence)
+
+	client, err := xmpp.NewClient(xmpp.Config{
+		Jid:      config.JID,
+		Password: config.Password,
+	}, router)
 
 	if err != nil {
 		logger.Error(err)
 		return nil
 	}
+	out.client = client
+	cm := xmpp.NewStreamManager(client, nil)
 	go func() {
-		client.Start()
+		cm.Run()
 		log.Panic("closed connection")
 	}()
-	out := &Output{
-		channels: make(map[string]bool),
-		bot:      bot,
-		client:   client,
-		botOut:   make(chan interface{}),
-		logOut:   make(chan interface{}),
-	}
-	go out.sender()
-	go out.receiver()
 
 	logger.WithField("jid", config.JID).Info("startup")
 
@@ -103,17 +103,19 @@ func (out *Output) Default() []*database.Notify {
 
 func (out *Output) Close() {
 	for jid := range out.channels {
-		toJID := xmppbase.NewJID(jid)
-		toJID.Resource = nickname
-		err := out.client.Send(&xmpp.PresenceClient{
-			To:   toJID,
-			Type: xmpp.PresenceTypeUnavailable,
-		})
+		toJID, err := xmpp.NewJid(jid)
 		if err != nil {
-			logger.Error("xmpp could not leave ", toJID.String(), " error:", err)
+			logger.Error("xmpp could generate jid to leave ", jid, " error:", err)
+		}
+		toJID.Resource = nickname
+		err = out.client.Send(xmpp.Presence{Attrs: xmpp.Attrs{
+			To:   toJID.Full(),
+			Type: xmpp.PresenceTypeUnavailable,
+		}})
+		if err != nil {
+			logger.Error("xmpp could not leave ", toJID.Full(), " error:", err)
 		}
 	}
-	out.client.Close()
 }
 
 func init() {
