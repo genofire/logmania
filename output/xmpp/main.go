@@ -6,6 +6,7 @@ import (
 	"github.com/bdlm/log"
 	"github.com/mitchellh/mapstructure"
 	"gosrc.io/xmpp"
+	"gosrc.io/xmpp/stanza"
 
 	"dev.sum7.eu/genofire/logmania/bot"
 	"dev.sum7.eu/genofire/logmania/database"
@@ -25,12 +26,13 @@ type Output struct {
 	defaults []*database.Notify
 	channels map[string]bool
 	bot      *bot.Bot
-	client   *xmpp.Client
+	client   xmpp.Sender
 	botOut   chan interface{}
 	logOut   chan interface{}
 }
 
 type OutputConfig struct {
+	Address  string          `mapstructure:"address"`
 	JID      string          `mapstructure:"jid"`
 	Password string          `mapstructure:"password"`
 	Defaults map[string]bool `mapstructure:"default"`
@@ -53,6 +55,7 @@ func Init(configInterface interface{}, db *database.DB, bot *bot.Bot) output.Out
 	router.HandleFunc("presence", out.recvPresence)
 
 	client, err := xmpp.NewClient(xmpp.Config{
+		Address:  config.Address,
 		Jid:      config.JID,
 		Password: config.Password,
 	}, router)
@@ -61,39 +64,34 @@ func Init(configInterface interface{}, db *database.DB, bot *bot.Bot) output.Out
 		logger.Error(err)
 		return nil
 	}
-	out.client = client
-	cm := xmpp.NewStreamManager(client, nil)
-	go func() {
-		cm.Run()
-		log.Panic("closed connection")
-	}()
-
-	logger.WithField("jid", config.JID).Info("startup")
-
-	for to, muc := range config.Defaults {
-		var def *database.Notify
-		pro := proto
-		if muc {
-			pro = protoGroup
-		}
-		if dbNotify, ok := db.NotifiesByAddress[pro+":"+to]; ok {
-			def = dbNotify
-		} else {
-			def = &database.Notify{
-				Protocol:  pro,
+	cm := xmpp.NewStreamManager(client, func(c xmpp.Sender) {
+		for to, muc := range config.Defaults {
+			def := &database.Notify{
+				Protocol:  proto,
 				To:        to,
 				RegexIn:   make(map[string]*regexp.Regexp),
 				MaxPrioIn: log.DebugLevel,
 			}
-			out.Join(to)
+			if muc {
+				def.Protocol = protoGroup
+				out.Join(to)
+			}
+			out.defaults = append(out.defaults, def)
 		}
-		out.defaults = append(out.defaults, def)
-	}
-	for _, toAddresses := range db.NotifiesByAddress {
-		if toAddresses.Protocol == protoGroup {
-			out.Join(toAddresses.To)
+		for _, toAddresses := range db.NotifiesByAddress {
+			if toAddresses.Protocol == protoGroup {
+				out.Join(toAddresses.To)
+			}
 		}
-	}
+		logger.Info("join muc after connect")
+	})
+	go func() {
+		cm.Run()
+		log.Panic("closed connection")
+	}()
+	out.client = client
+
+	logger.WithField("jid", config.JID).Info("startup")
 	return out
 }
 
@@ -108,9 +106,9 @@ func (out *Output) Close() {
 			logger.Error("xmpp could generate jid to leave ", jid, " error:", err)
 		}
 		toJID.Resource = nickname
-		err = out.client.Send(xmpp.Presence{Attrs: xmpp.Attrs{
+		err = out.client.Send(stanza.Presence{Attrs: stanza.Attrs{
 			To:   toJID.Full(),
-			Type: xmpp.PresenceTypeUnavailable,
+			Type: stanza.PresenceTypeUnavailable,
 		}})
 		if err != nil {
 			logger.Error("xmpp could not leave ", toJID.Full(), " error:", err)
