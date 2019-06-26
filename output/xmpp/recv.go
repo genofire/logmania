@@ -1,21 +1,30 @@
 package xmpp
 
 import (
+	"time"
+
 	"github.com/bdlm/log"
 	"gosrc.io/xmpp"
 )
 
 func (out *Output) recvMessage(s xmpp.Sender, p xmpp.Packet) {
+	before := time.Now()
+
 	msg, ok := p.(xmpp.Message)
 	if !ok {
 		log.Errorf("blame gosrc.io/xmpp for routing: %s", p)
 		return
 	}
+	log.WithFields(map[string]interface{}{
+		"sender":  msg.From,
+		"request": msg.Body,
+	}).Debug("handling bot message")
 	from, err := xmpp.NewJid(msg.From)
 	if err != nil {
 		log.Errorf("blame gosrc.io/xmpp for jid encoding: %s", msg.From)
 		return
 	}
+
 	fromBare := from.Bare()
 	fromLogmania := ""
 	if msg.Type == xmpp.MessageTypeGroupchat {
@@ -30,6 +39,16 @@ func (out *Output) recvMessage(s xmpp.Sender, p xmpp.Packet) {
 	}
 	reply := xmpp.Message{Attrs: xmpp.Attrs{To: fromBare, Type: msg.Type}, Body: answer}
 	s.Send(reply)
+
+	after := time.Now()
+	delta := after.Sub(before)
+
+	log.WithFields(map[string]interface{}{
+		"sender":  fromLogmania,
+		"request": msg.Body,
+		"answer":  answer,
+		"ms":      float64(delta) / float64(time.Millisecond),
+	}).Debug("handled xmpp bot message")
 }
 
 func (out *Output) recvPresence(s xmpp.Sender, p xmpp.Packet) {
