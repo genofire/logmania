@@ -15,13 +15,12 @@ func (out *Output) Join(to string) {
 		logger.Error("xmpp could not generate jid to join ", to, " error:", err)
 		return
 	}
-	maxstanzas := 0
 	toJID.Resource = nickname
 
 	err = out.client.Send(xmpp.Presence{Attrs: xmpp.Attrs{To: toJID.Full()},
 		Extensions: []xmpp.PresExtension{
 			xmpp.MucPresence{
-				History: xmpp.History{MaxStanzas: &maxstanzas},
+				History: xmpp.History{MaxStanzas: xmpp.NewNullableInt(0)},
 			}},
 	})
 	if err != nil {
