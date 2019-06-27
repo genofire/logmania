@@ -5,6 +5,7 @@ import (
 
 	"github.com/bdlm/log"
 	"gosrc.io/xmpp"
+	"gosrc.io/xmpp/stanza"
 
 	"dev.sum7.eu/genofire/logmania/database"
 )
@@ -12,19 +13,18 @@ import (
 func (out *Output) Join(to string) {
 	toJID, err := xmpp.NewJid(to)
 	if err != nil {
-		logger.Error("xmpp could not generate jid to join ", to, " error:", err)
+		logger.Errorf("jid not generate to join muc %s : %s", to, err)
 		return
 	}
 	toJID.Resource = nickname
 
-	err = out.client.Send(xmpp.Presence{Attrs: xmpp.Attrs{To: toJID.Full()},
-		Extensions: []xmpp.PresExtension{
-			xmpp.MucPresence{
-				History: xmpp.History{MaxStanzas: xmpp.NewNullableInt(0)},
+	if err = out.client.Send(stanza.Presence{Attrs: stanza.Attrs{To: toJID.Full()},
+		Extensions: []stanza.PresExtension{
+			stanza.MucPresence{
+				History: stanza.History{MaxStanzas: stanza.NewNullableInt(0)},
 			}},
-	})
-	if err != nil {
-		logger.Error("xmpp could not join ", toJID.Full(), " error:", err)
+	}); err != nil {
+		logger.Errorf("muc not join %s : %s", toJID.Full(), err)
 	} else {
 		out.channels[to] = true
 	}
@@ -39,26 +39,36 @@ func (out *Output) Send(e *log.Entry, to *database.Notify) bool {
 	html = strings.TrimRight(to.RunReplace(html), "\n")
 	text = strings.TrimRight(to.RunReplace(text), "\n")
 
-	msg := xmpp.Message{
-		Attrs: xmpp.Attrs{
+	msg := stanza.Message{
+		Attrs: stanza.Attrs{
 			To: to.To,
 		},
 		Body: text,
-		Extensions: []xmpp.MsgExtension{
-			xmpp.HTML{Body: xmpp.HTMLBody{InnerXML: html}},
+		Extensions: []stanza.MsgExtension{
+			stanza.HTML{Body: stanza.HTMLBody{InnerXML: html}},
 		},
 	}
 	if to.Protocol == protoGroup {
 		if _, ok := out.channels[to.To]; ok {
 			out.Join(to.To)
 		}
-		msg.Type = xmpp.MessageTypeGroupchat
-		out.client.Send(msg)
+		msg.Type = stanza.MessageTypeGroupchat
+		if err := out.client.Send(msg); err != nil {
+			logger.WithFields(map[string]interface{}{
+				"muc":  to.To,
+				"text": text,
+			}).Errorf("log message not forwarded: %s", err)
+		}
 		return true
 	}
 	if to.Protocol == proto {
-		msg.Type = xmpp.MessageTypeChat
-		out.client.Send(msg)
+		msg.Type = stanza.MessageTypeChat
+		if err := out.client.Send(msg); err != nil {
+			logger.WithFields(map[string]interface{}{
+				"user": to.To,
+				"text": text,
+			}).Errorf("log message not forwarded: %s", err)
+		}
 		return true
 	}
 	return false

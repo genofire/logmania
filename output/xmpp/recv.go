@@ -3,31 +3,32 @@ package xmpp
 import (
 	"time"
 
-	"github.com/bdlm/log"
 	"gosrc.io/xmpp"
+	"gosrc.io/xmpp/stanza"
 )
 
-func (out *Output) recvMessage(s xmpp.Sender, p xmpp.Packet) {
+func (out *Output) recvMessage(s xmpp.Sender, p stanza.Packet) {
 	before := time.Now()
 
-	msg, ok := p.(xmpp.Message)
+	msg, ok := p.(stanza.Message)
 	if !ok {
-		log.Errorf("blame gosrc.io/xmpp for routing: %s", p)
+		logger.Errorf("blame gosrc.io/xmpp for routing: %s", p)
 		return
 	}
-	log.WithFields(map[string]interface{}{
+	logger.WithFields(map[string]interface{}{
 		"sender":  msg.From,
 		"request": msg.Body,
 	}).Debug("handling bot message")
+
 	from, err := xmpp.NewJid(msg.From)
 	if err != nil {
-		log.Errorf("blame gosrc.io/xmpp for jid encoding: %s", msg.From)
+		logger.Errorf("blame gosrc.io/xmpp for jid encoding: %s", msg.From)
 		return
 	}
 
 	fromBare := from.Bare()
 	fromLogmania := ""
-	if msg.Type == xmpp.MessageTypeGroupchat {
+	if msg.Type == stanza.MessageTypeGroupchat {
 		fromLogmania = protoGroup + ":" + fromBare
 	} else {
 		fromLogmania = proto + ":" + fromBare
@@ -37,13 +38,18 @@ func (out *Output) recvMessage(s xmpp.Sender, p xmpp.Packet) {
 	if answer == "" {
 		return
 	}
-	reply := xmpp.Message{Attrs: xmpp.Attrs{To: fromBare, Type: msg.Type}, Body: answer}
-	s.Send(reply)
+	if err := s.Send(stanza.Message{Attrs: stanza.Attrs{To: fromBare, Type: msg.Type}, Body: answer}); err != nil {
+		logger.WithFields(map[string]interface{}{
+			"sender":  fromLogmania,
+			"request": msg.Body,
+			"answer":  answer,
+		}).Errorf("unable to send bot answer: %s", err)
+	}
 
 	after := time.Now()
 	delta := after.Sub(before)
 
-	log.WithFields(map[string]interface{}{
+	logger.WithFields(map[string]interface{}{
 		"sender":  fromLogmania,
 		"request": msg.Body,
 		"answer":  answer,
@@ -51,42 +57,48 @@ func (out *Output) recvMessage(s xmpp.Sender, p xmpp.Packet) {
 	}).Debug("handled xmpp bot message")
 }
 
-func (out *Output) recvPresence(s xmpp.Sender, p xmpp.Packet) {
-	pres, ok := p.(xmpp.Presence)
+func (out *Output) recvPresence(s xmpp.Sender, p stanza.Packet) {
+	pres, ok := p.(stanza.Presence)
 	if !ok {
-		log.Errorf("blame gosrc.io/xmpp for routing: %s", p)
+		logger.Errorf("blame gosrc.io/xmpp for routing: %s", p)
 		return
 	}
 	from, err := xmpp.NewJid(pres.From)
 	if err != nil {
-		log.Errorf("blame gosrc.io/xmpp for jid encoding: %s", pres.From)
+		logger.Errorf("blame gosrc.io/xmpp for jid encoding: %s", pres.From)
 		return
 	}
 	fromBare := from.Bare()
 	logPres := logger.WithField("from", from)
 
 	switch pres.Type {
-	case xmpp.PresenceTypeSubscribe:
+	case stanza.PresenceTypeSubscribe:
 		logPres.Debugf("recv presence subscribe")
-		s.Send(xmpp.Presence{Attrs: xmpp.Attrs{
-			Type: xmpp.PresenceTypeSubscribed,
+		if err := s.Send(stanza.Presence{Attrs: stanza.Attrs{
+			Type: stanza.PresenceTypeSubscribed,
 			To:   fromBare,
 			Id:   pres.Id,
-		}})
+		}}); err != nil {
+			logPres.WithField("user", pres.From).Errorf("answer of subscribe not send: %s", err)
+			return
+		}
 		logPres.Debugf("accept new subscribe")
 
-		s.Send(xmpp.Presence{Attrs: xmpp.Attrs{
-			Type: xmpp.PresenceTypeSubscribe,
+		if err := s.Send(stanza.Presence{Attrs: stanza.Attrs{
+			Type: stanza.PresenceTypeSubscribe,
 			To:   fromBare,
-		}})
+		}}); err != nil {
+			logPres.WithField("user", pres.From).Errorf("request of subscribe not send: %s", err)
+			return
+		}
 		logPres.Info("request also subscribe")
-	case xmpp.PresenceTypeSubscribed:
+	case stanza.PresenceTypeSubscribed:
 		logPres.Info("recv presence accepted subscribe")
-	case xmpp.PresenceTypeUnsubscribe:
+	case stanza.PresenceTypeUnsubscribe:
 		logPres.Info("recv presence remove subscribe")
-	case xmpp.PresenceTypeUnsubscribed:
+	case stanza.PresenceTypeUnsubscribed:
 		logPres.Info("recv presence removed subscribe")
-	case xmpp.PresenceTypeUnavailable:
+	case stanza.PresenceTypeUnavailable:
 		logPres.Debug("recv presence unavailable")
 	case "":
 		logPres.Debug("recv empty presence, maybe from joining muc")

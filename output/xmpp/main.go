@@ -84,12 +84,12 @@ func Init(configInterface interface{}, db *database.DB, bot *bot.Bot) output.Out
 			}
 		}
 		logger.Info("join muc after connect")
+		out.client = c
 	})
 	go func() {
 		cm.Run()
 		log.Panic("closed connection")
 	}()
-	out.client = client
 
 	logger.WithField("jid", config.JID).Info("startup")
 	return out
@@ -106,11 +106,10 @@ func (out *Output) Close() {
 			logger.Error("xmpp could generate jid to leave ", jid, " error:", err)
 		}
 		toJID.Resource = nickname
-		err = out.client.Send(stanza.Presence{Attrs: stanza.Attrs{
+		if err = out.client.Send(stanza.Presence{Attrs: stanza.Attrs{
 			To:   toJID.Full(),
 			Type: stanza.PresenceTypeUnavailable,
-		}})
-		if err != nil {
+		}}); err != nil {
 			logger.Error("xmpp could not leave ", toJID.Full(), " error:", err)
 		}
 	}
