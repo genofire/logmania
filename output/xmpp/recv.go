@@ -92,6 +92,6 @@ func (out *Output) recvPresence(s xmpp.Sender, p xmpp.Packet) {
 		logPres.Debug("recv empty presence, maybe from joining muc")
 		return
 	default:
-		logPres.Warnf("recv presence unsupported: %s -> %s", pres.Type, pres)
+		logPres.Warnf("recv presence unsupported: %s -> %v", pres.Type, pres)
 	}
 }
