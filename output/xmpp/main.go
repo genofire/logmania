@@ -71,14 +71,20 @@ func Init(configInterface interface{}, db *database.DB, bot *bot.Bot) output.Out
 	logger.WithField("jid", config.JID).Info("startup")
 
 	for to, muc := range config.Defaults {
-		def := &database.Notify{
-			Protocol:  proto,
-			To:        to,
-			RegexIn:   make(map[string]*regexp.Regexp),
-			MaxPrioIn: log.DebugLevel,
-		}
+		var def *database.Notify
+		pro := proto
 		if muc {
-			def.Protocol = protoGroup
+			pro = protoGroup
+		}
+		if dbNotify, ok := db.NotifiesByAddress[pro+":"+to]; ok {
+			def = dbNotify
+		} else {
+			def = &database.Notify{
+				Protocol:  pro,
+				To:        to,
+				RegexIn:   make(map[string]*regexp.Regexp),
+				MaxPrioIn: log.DebugLevel,
+			}
 			out.Join(to)
 		}
 		out.defaults = append(out.defaults, def)
