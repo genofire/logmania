@@ -46,24 +46,18 @@ func (db *DB) SendTo(e *log.Entry) (*log.Entry, *Host, []*Notify) {
 		}
 		// return default notify list
 		if host.Notifies == nil || len(host.Notifies) == 0 {
-			return entry, host, db.DefaultNotify
-		}
-		// return with host specify list
-		for _, notify := range host.NotifiesByAddress {
-			if lvl := notify.MaxPrioIn; e.Level >= lvl {
-				continue
-			}
-			stopForTo := false
-			for _, expr := range notify.RegexIn {
-				if expr.MatchString(e.Message) {
-					stopForTo = true
-					continue
+			for _, notify := range db.DefaultNotify {
+				if notify.Send(e) {
+					toList = append(toList, notify)
 				}
 			}
-			if stopForTo {
-				continue
+		} else {
+			// return with host specify list
+			for _, notify := range host.NotifiesByAddress {
+				if notify.Send(e) {
+					toList = append(toList, notify)
+				}
 			}
-			toList = append(toList, notify)
 		}
 		return entry, host, toList
 	}

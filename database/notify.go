@@ -68,6 +68,18 @@ func (n *Notify) Address() string {
 	return n.Protocol + ":" + n.To
 }
 
+func (n *Notify) Send(e *log.Entry) bool {
+	if lvl := n.MaxPrioIn; e.Level >= lvl {
+		return false
+	}
+	for _, expr := range n.RegexIn {
+		if expr.MatchString(e.Message) {
+			return false
+		}
+	}
+	return true
+}
+
 // -- global notify
 
 func (db *DB) InitNotify() {
@@ -79,7 +91,6 @@ func (db *DB) InitNotify() {
 		db.NotifiesByAddress[n.Address()] = n
 	}
 }
-
 func (db *DB) AddNotify(n *Notify) {
 	db.Notifies = append(db.Notifies, n)
 	db.NotifiesByAddress[n.Address()] = n
