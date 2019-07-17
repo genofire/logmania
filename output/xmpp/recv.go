@@ -1,75 +1,109 @@
 package xmpp
 
 import (
-	xmpp "dev.sum7.eu/genofire/yaja/xmpp"
-	"github.com/bdlm/log"
+	"time"
+
+	"gosrc.io/xmpp"
+	"gosrc.io/xmpp/stanza"
 )
 
-func (out *Output) receiver() {
-	for {
-		element, more := out.client.Recv()
-		if !more {
-			log.Warn("could not receive new message, try later")
-			continue
-		}
-		out.recv(element)
+func (out *Output) recvMessage(s xmpp.Sender, p stanza.Packet) {
+	before := time.Now()
+
+	msg, ok := p.(stanza.Message)
+	if !ok {
+		logger.Errorf("blame gosrc.io/xmpp for routing: %s", p)
+		return
 	}
+	logger.WithFields(map[string]interface{}{
+		"sender":  msg.From,
+		"request": msg.Body,
+	}).Debug("handling bot message")
+
+	from, err := xmpp.NewJid(msg.From)
+	if err != nil {
+		logger.Errorf("blame gosrc.io/xmpp for jid encoding: %s", msg.From)
+		return
+	}
+
+	fromBare := from.Bare()
+	fromLogmania := ""
+	if msg.Type == stanza.MessageTypeGroupchat {
+		fromLogmania = protoGroup + ":" + fromBare
+	} else {
+		fromLogmania = proto + ":" + fromBare
+	}
+
+	answer := out.bot.Handle(fromLogmania, msg.Body)
+	if answer == "" {
+		return
+	}
+	if err := s.Send(stanza.Message{Attrs: stanza.Attrs{To: fromBare, Type: msg.Type}, Body: answer}); err != nil {
+		logger.WithFields(map[string]interface{}{
+			"sender":  fromLogmania,
+			"request": msg.Body,
+			"answer":  answer,
+		}).Errorf("unable to send bot answer: %s", err)
+	}
+
+	after := time.Now()
+	delta := after.Sub(before)
+
+	logger.WithFields(map[string]interface{}{
+		"sender":  fromLogmania,
+		"request": msg.Body,
+		"answer":  answer,
+		"ms":      float64(delta) / float64(time.Millisecond),
+	}).Debug("handled xmpp bot message")
 }
-func (out *Output) recv(element interface{}) {
 
-	switch element.(type) {
-	case *xmpp.PresenceClient:
-		pres := element.(*xmpp.PresenceClient)
-		sender := pres.From
-		logPres := logger.WithField("from", sender.Full())
-		switch pres.Type {
-		case xmpp.PresenceTypeSubscribe:
-			logPres.Debugf("recv presence subscribe")
-			pres.Type = xmpp.PresenceTypeSubscribed
-			pres.To = sender
-			pres.From = nil
-			out.botOut <- pres
-			logPres.Debugf("accept new subscribe")
+func (out *Output) recvPresence(s xmpp.Sender, p stanza.Packet) {
+	pres, ok := p.(stanza.Presence)
+	if !ok {
+		logger.Errorf("blame gosrc.io/xmpp for routing: %s", p)
+		return
+	}
+	from, err := xmpp.NewJid(pres.From)
+	if err != nil {
+		logger.Errorf("blame gosrc.io/xmpp for jid encoding: %s", pres.From)
+		return
+	}
+	fromBare := from.Bare()
+	logPres := logger.WithField("from", from)
 
-			pres.Type = xmpp.PresenceTypeSubscribe
-			pres.ID = ""
-			out.botOut <- pres
-			logPres.Info("request also subscribe")
-		case xmpp.PresenceTypeSubscribed:
-			logPres.Info("recv presence accepted subscribe")
-		case xmpp.PresenceTypeUnsubscribe:
-			logPres.Info("recv presence remove subscribe")
-		case xmpp.PresenceTypeUnsubscribed:
-			logPres.Info("recv presence removed subscribe")
-		case xmpp.PresenceTypeUnavailable:
-			logPres.Debug("recv presence unavailable")
-		case "":
-			logPres.Debug("recv empty presence, maybe from joining muc")
-			return
-		default:
-			logPres.Warnf("recv presence unsupported: %s -> %s", pres.Type, xmpp.XMLChildrenString(pres))
-		}
-	case *xmpp.MessageClient:
-		msg := element.(*xmpp.MessageClient)
-		from := msg.From.Bare().String()
-		if msg.Type == xmpp.MessageTypeGroupchat {
-			from = protoGroup + ":" + from
-		} else {
-			from = proto + ":" + from
-		}
-
-		answer := out.bot.Handle(from, msg.Body)
-		if answer == "" {
+	switch pres.Type {
+	case stanza.PresenceTypeSubscribe:
+		logPres.Debugf("recv presence subscribe")
+		if err := s.Send(stanza.Presence{Attrs: stanza.Attrs{
+			Type: stanza.PresenceTypeSubscribed,
+			To:   fromBare,
+			Id:   pres.Id,
+		}}); err != nil {
+			logPres.WithField("user", pres.From).Errorf("answer of subscribe not send: %s", err)
 			return
 		}
-		to := msg.From
-		if msg.Type == xmpp.MessageTypeGroupchat && !to.IsBare() {
-			to = to.Bare()
+		logPres.Debugf("accept new subscribe")
+
+		if err := s.Send(stanza.Presence{Attrs: stanza.Attrs{
+			Type: stanza.PresenceTypeSubscribe,
+			To:   fromBare,
+		}}); err != nil {
+			logPres.WithField("user", pres.From).Errorf("request of subscribe not send: %s", err)
+			return
 		}
-		out.botOut <- &xmpp.MessageClient{
-			Type: msg.Type,
-			To:   to,
-			Body: answer,
-		}
+		logPres.Info("request also subscribe")
+	case stanza.PresenceTypeSubscribed:
+		logPres.Info("recv presence accepted subscribe")
+	case stanza.PresenceTypeUnsubscribe:
+		logPres.Info("recv presence remove subscribe")
+	case stanza.PresenceTypeUnsubscribed:
+		logPres.Info("recv presence removed subscribe")
+	case stanza.PresenceTypeUnavailable:
+		logPres.Debug("recv presence unavailable")
+	case "":
+		logPres.Debug("recv empty presence, maybe from joining muc")
+		return
+	default:
+		logPres.Warnf("recv presence unsupported: %s -> %v", pres.Type, pres)
 	}
 }
