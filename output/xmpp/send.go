@@ -31,6 +31,10 @@ func (out *Output) Join(to string) {
 }
 
 func (out *Output) Send(e *log.Entry, to *database.Notify) bool {
+	if out.client == nil {
+		logger.Error("xmpp not connected (yet)")
+		return false
+	}
 	html, text := formatLog(e)
 	if html == "" || text == "" {
 		logger.Error("during format notify")

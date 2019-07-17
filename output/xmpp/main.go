@@ -65,6 +65,8 @@ func Init(configInterface interface{}, db *database.DB, bot *bot.Bot) output.Out
 		return nil
 	}
 	cm := xmpp.NewStreamManager(client, func(c xmpp.Sender) {
+		out.client = c
+
 		for to, muc := range config.Defaults {
 			def := &database.Notify{
 				Protocol:  proto,
@@ -84,7 +86,6 @@ func Init(configInterface interface{}, db *database.DB, bot *bot.Bot) output.Out
 			}
 		}
 		logger.Info("join muc after connect")
-		out.client = c
 	})
 	go func() {
 		cm.Run()
