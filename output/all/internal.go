@@ -2,6 +2,7 @@ package all
 
 import (
 	"github.com/bdlm/log"
+	"time"
 
 	"dev.sum7.eu/genofire/logmania/bot"
 	"dev.sum7.eu/genofire/logmania/database"
@@ -69,7 +70,19 @@ func (out *Output) sender() {
 }
 
 func (out *Output) Send(e *log.Entry, to *database.Notify) bool {
+	before := time.Now()
+
+	logger := log.WithFields(e.Data)
+	logger = logger.WithField("msg", e.Message)
+
+	logger.Debugf("starting forward message")
+
 	out.channelNotify <- e
+
+	after := time.Now()
+	delta := after.Sub(before)
+	logger.WithField("ms", float64(delta)/float64(time.Millisecond)).Debugf("end forward message")
+
 	return true
 }
 
