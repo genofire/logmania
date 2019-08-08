@@ -1,6 +1,6 @@
 workspace:
   base: /go
-  path: src/dev.sum7.eu/genofire/logmania
+  path: src/dev.sum7.eu/sum7/logmania
 
 pipeline:
   build:

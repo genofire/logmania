@@ -3,7 +3,7 @@ package bot
 import (
 	"github.com/mattn/go-shellwords"
 
-	"dev.sum7.eu/genofire/logmania/database"
+	"dev.sum7.eu/sum7/logmania/database"
 )
 
 type Bot struct {

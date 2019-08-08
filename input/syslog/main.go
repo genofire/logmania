@@ -6,7 +6,7 @@ import (
 	"github.com/bdlm/log"
 	"github.com/mitchellh/mapstructure"
 
-	"dev.sum7.eu/genofire/logmania/input"
+	"dev.sum7.eu/sum7/logmania/input"
 )
 
 const inputType = "syslog"

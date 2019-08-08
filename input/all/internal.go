@@ -3,7 +3,7 @@ package all
 import (
 	"github.com/bdlm/log"
 
-	"dev.sum7.eu/genofire/logmania/input"
+	"dev.sum7.eu/sum7/logmania/input"
 )
 
 type Input struct {

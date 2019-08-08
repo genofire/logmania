@@ -4,7 +4,7 @@ import (
 	"github.com/bdlm/log"
 	logstd "github.com/bdlm/std/logger"
 
-	libSyslog "dev.sum7.eu/genofire/logmania/lib/syslog"
+	libSyslog "dev.sum7.eu/sum7/logmania/lib/syslog"
 )
 
 var SyslogPriorityMap = map[int]logstd.Level{

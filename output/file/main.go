@@ -8,9 +8,9 @@ import (
 	"github.com/bdlm/log"
 	"github.com/mitchellh/mapstructure"
 
-	"dev.sum7.eu/genofire/logmania/bot"
-	"dev.sum7.eu/genofire/logmania/database"
-	"dev.sum7.eu/genofire/logmania/output"
+	"dev.sum7.eu/sum7/logmania/bot"
+	"dev.sum7.eu/sum7/logmania/database"
+	"dev.sum7.eu/sum7/logmania/output"
 )
 
 const (

@@ -3,7 +3,7 @@ package bot
 import (
 	"fmt"
 
-	"dev.sum7.eu/genofire/logmania/database"
+	"dev.sum7.eu/sum7/logmania/database"
 )
 
 func NewSend(db *database.DB) *Command {

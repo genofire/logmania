@@ -11,13 +11,13 @@ import (
 
 	"dev.sum7.eu/genofire/golang-lib/file"
 	"dev.sum7.eu/genofire/golang-lib/worker"
-	"dev.sum7.eu/genofire/logmania/bot"
-	"dev.sum7.eu/genofire/logmania/database"
-	"dev.sum7.eu/genofire/logmania/input"
-	allInput "dev.sum7.eu/genofire/logmania/input/all"
-	"dev.sum7.eu/genofire/logmania/lib"
-	"dev.sum7.eu/genofire/logmania/output"
-	allOutput "dev.sum7.eu/genofire/logmania/output/all"
+	"dev.sum7.eu/sum7/logmania/bot"
+	"dev.sum7.eu/sum7/logmania/database"
+	"dev.sum7.eu/sum7/logmania/input"
+	allInput "dev.sum7.eu/sum7/logmania/input/all"
+	"dev.sum7.eu/sum7/logmania/lib"
+	"dev.sum7.eu/sum7/logmania/output"
+	allOutput "dev.sum7.eu/sum7/logmania/output/all"
 )
 
 var (

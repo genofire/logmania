@@ -6,7 +6,7 @@ import (
 	"github.com/bdlm/log"
 	logstd "github.com/bdlm/std/logger"
 
-	"dev.sum7.eu/genofire/logmania/database"
+	"dev.sum7.eu/sum7/logmania/database"
 )
 
 func NewPriority(db *database.DB) *Command {

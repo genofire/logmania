@@ -7,7 +7,7 @@ import (
 	"gosrc.io/xmpp"
 	"gosrc.io/xmpp/stanza"
 
-	"dev.sum7.eu/genofire/logmania/database"
+	"dev.sum7.eu/sum7/logmania/database"
 )
 
 func (out *Output) Join(to string) {

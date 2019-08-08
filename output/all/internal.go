@@ -4,9 +4,9 @@ import (
 	"github.com/bdlm/log"
 	"time"
 
-	"dev.sum7.eu/genofire/logmania/bot"
-	"dev.sum7.eu/genofire/logmania/database"
-	"dev.sum7.eu/genofire/logmania/output"
+	"dev.sum7.eu/sum7/logmania/bot"
+	"dev.sum7.eu/sum7/logmania/database"
+	"dev.sum7.eu/sum7/logmania/output"
 )
 
 var logger = log.WithField("notify", "all")
